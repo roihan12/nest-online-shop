@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Address {
+  id          String        @id @default(uuid())
+  user_id     String
+  name        String        @db.VarChar(50)
+  phone       String        @db.VarChar(20)
+  address     String        @db.Text
+  city        String        @db.VarChar(100)
+  state       String        @db.VarChar(100)
+  type_name   type_address  @default(HOME)
+  postal_code String        @db.VarChar(20)
+  is_default  Boolean       @default(false)
+  created_at  DateTime      @default(now()) @db.Timestamp(0)
+  updated_at  DateTime      @default(now()) @db.Timestamp(0)
+  User        User          @relation(fields: [user_id], references: [id])
+  Transaction Transaction[]
+
+  @@index([user_id])
+  @@map("addresses")
+}
+
+model Brand {
+  id         String      @id @default(uuid())
+  name       String      @db.VarChar(150)
+  created_at DateTime    @default(now()) @db.Timestamp(0)
+  updated_at DateTime    @default(now()) @db.Timestamp(0)
+  Product    Product[]
+  status     status_type @default(ACTIVE)
+
+  @@map("brands")
+}
+
+model ShoppingCart {
+  id         String   @id @default(uuid())
+  user_id    String
+  productId  String
+  qty        Int
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  Product    Product  @relation(fields: [productId], references: [id])
+  User       User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([productId])
+  @@map("shopping_cart")
+}
+
+model Whsilist {
+  id         String   @id @default(uuid())
+  product_id String
+  user_id    String
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  Product    Product  @relation(fields: [product_id], references: [id])
+  User       User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([product_id])
+  @@map("whislists")
+}
+
+model Product {
+  id                 String             @id @default(uuid())
+  brand_id           String
+  category_id        String
+  slug               String?
+  name               String
+  price              Decimal
+  description        String             @db.Text
+  stock_sold         Int?
+  weight             Int
+  isFeatured         Boolean            @default(false)
+  isArchived         Boolean            @default(false)
+  created_at         DateTime           @default(now()) @db.Timestamp(0)
+  updated_at         DateTime           @default(now()) @db.Timestamp(0)
+  images             Image[]
+  brand              Brand              @relation(fields: [brand_id], references: [id])
+  category           Category           @relation("CategoryToProduct", fields: [category_id], references: [id])
+  reviews            Review[]
+  shoppingCart       ShoppingCart[]
+  transactions_items TransactionsItem[]
+  Whsilist           Whsilist[]
+  Variant            Variant[]
+
+  @@index([category_id])
+  @@index([brand_id])
+  @@map("products")
+}
+
+model Transaction {
+  id                 String              @id @default(uuid())
+  total_price        Int
+  status             transactions_status
+  user_id            String
+  address_id         String
+  customer_name      String              @db.VarChar(255)
+  customer_email     String              @db.VarChar(255)
+  snap_token         String?             @db.VarChar(255)
+  snap_redirect_url  String?             @db.VarChar(255)
+  payment_method     String?             @db.VarChar(110)
+  courier            String?             @db.VarChar(255)
+  shipping_method    String?
+  shipping_cost      String?
+  created_at         DateTime            @default(now()) @db.Timestamp(0)
+  updated_at         DateTime            @default(now()) @db.Timestamp(0)
+  Address            Address             @relation(fields: [address_id], references: [id])
+  User               User                @relation(fields: [user_id], references: [id])
+  transactions_items TransactionsItem[]
+
+  @@index([user_id])
+  @@index([address_id])
+  @@map("transactions")
+}
+
+model TransactionsItem {
+  id             String      @id @default(uuid())
+  transaction_id String      @db.VarChar(110)
+  product_id     String      @db.VarChar(110)
+  product_name   String      @db.VarChar(255)
+  price          Int
+  quantity       Int
+  total_price Int
+  created_at     DateTime    @default(now()) @db.Timestamp(0)
+  updated_at     DateTime    @default(now()) @db.Timestamp(0)
+  transactions   Transaction @relation(fields: [transaction_id], references: [id], onUpdate: Restrict, map: "transactions_items_ibfk_1")
+  products       Product     @relation(fields: [product_id], references: [id], onUpdate: Restrict, map: "transactions_items_ibfk_2")
+
+  @@index([product_id], map: "product_id")
+  @@index([transaction_id], map: "transaction_id")
+  @@map("transactions_items")
+}
+
+model Billboard {
+  id         String      @id @default(uuid())
+  label      String
+  imageUrl   String
+  created_at DateTime    @default(now()) @db.Timestamp(0)
+  updated_at DateTime    @default(now()) @db.Timestamp(0)
+  categories Category[]
+  status     status_type @default(ACTIVE)
+
+  @@map("billboards")
+}
+
+model Category {
+  id           String      @id @default(uuid())
+  billboard_id String
+  name         String
+  created_at   DateTime    @default(now()) @db.Timestamp(0)
+  updated_at   DateTime    @default(now()) @db.Timestamp(0)
+  billboard    Billboard   @relation(fields: [billboard_id], references: [id])
+  products     Product[]   @relation("CategoryToProduct")
+  status       status_type @default(ACTIVE)
+
+  @@index([billboard_id])
+  @@map("category")
+}
+
+model Variant {
+  id         String      @id @default(uuid())
+  product_id String
+  name       String
+  value      String
+  price      Int
+  stok       Int
+  created_at DateTime    @default(now()) @db.Timestamp(0)
+  updated_at DateTime    @default(now()) @db.Timestamp(0)
+  products   Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  status     status_type @default(ACTIVE)
+
+  @@map("variant")
+}
+
+model Image {
+  id         String   @id @default(uuid())
+  product_id String
+  url        String   @db.Text
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id])
+  @@map("images")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  product_id String
+  user_id    String
+  rating     Int
+  message    String?  @db.Text
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  Product    Product  @relation(fields: [product_id], references: [id])
+  User       User     @relation(fields: [user_id], references: [id])
+
+  @@index([product_id])
+  @@index([user_id])
+  @@map("reviews")
+}
+
+model User {
+  id                 String         @id @unique @default(uuid())
+  username           String         @unique @db.VarChar(75)
+  role               user_role      @default(USER)
+  full_name          String         @db.VarChar(100)
+  email              String         @unique @db.VarChar(100)
+  password           String         @db.VarChar(200)
+  photo              String?        @db.Text
+  refresh_token      String?        @db.Text
+  verified           Boolean?       @default(false)
+  status             status_type?   @default(ACTIVE)
+  verificationCode   String?        @db.Text
+  provider           String?
+  passwordResetToken String?
+  passwordResetAt    DateTime?
+  created_at         DateTime       @default(now()) @db.Timestamp(0)
+  updated_at         DateTime       @default(now()) @db.Timestamp(0)
+  Address            Address[]
+  Review             Review[]
+  ShoppingCart       ShoppingCart[]
+  Transaction        Transaction[]
+  Whsilist           Whsilist[]
+
+  @@map("users")
+}
+
+enum transactions_status {
+  PENDING_PAYMENT
+  PAID
+  CANCELED
+}
+
+enum status_type {
+  ACTIVE
+  INACTIVE
+}
+
+enum user_role {
+  ADMIN
+  USER
+  OWNER
+}
+
+enum type_address {
+  HOME
+  OFFICE
+}
