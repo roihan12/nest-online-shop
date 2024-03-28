@@ -7,7 +7,7 @@ async function bootstrap() {
 
   const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
   app.useLogger(logger);
-
+  app.setGlobalPrefix('api/v1');
   await app.listen(3000);
 }
 bootstrap();
