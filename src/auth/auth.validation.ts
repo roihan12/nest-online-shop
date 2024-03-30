@@ -18,4 +18,12 @@ export class AuthValidation {
       path: ['confirmPassword'],
       message: 'Passwords do not match',
     });
+
+  static readonly LOGIN: ZodType = z.object({
+    email: z.string().email(),
+    password: z
+      .string({ required_error: 'Password is required' })
+      .min(8, { message: 'Password must be more than 8 characters' })
+      .max(32, { message: 'Password must be less than 32 characters' }),
+  });
 }
