@@ -176,7 +176,7 @@ model Variant {
   products   Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
   status     status_type @default(ACTIVE)
 
-  @@map("variant")
+  @@map("variants")
 }
 
 model Image {
@@ -218,7 +218,7 @@ model User {
   refresh_token      String?        @db.Text
   verified           Boolean?       @default(false)
   status             status_type?   @default(ACTIVE)
-  verificationCode   String?        @db.Text
+  verificationCode   String?        @db.Text @unique
   provider           String?
   passwordResetToken String?
   passwordResetAt    DateTime?

@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
+  Render,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -34,6 +37,17 @@ export class AuthController {
       message: 'Register success',
       data: response,
     };
+  }
+
+  @Public()
+  @Get('/verifyemail/:verificationCode')
+  @HttpCode(HttpStatus.OK)
+  @Render('success-register')
+  async verifyEmail(
+    @Param('verificationCode') verificationCode: string,
+  ): Promise<object> {
+    const response = await this.authService.verifyEmail(verificationCode);
+    return { name: response.full_name };
   }
 
   @Public()

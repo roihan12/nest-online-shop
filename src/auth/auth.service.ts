@@ -16,12 +16,13 @@ import {
 import { Logger } from 'winston';
 import { AuthValidation } from './auth.validation';
 import * as bcrypt from 'bcrypt';
-
+import * as crypto from 'crypto';
 import { ValidationService } from '../common/validation.service';
 import { PrismaService } from '../common/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Tokens } from 'src/model/jwt.model';
+import { TypedEventEmitter } from 'src/event-emitter/typed-event-emitter.class';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +32,7 @@ export class AuthService {
     private prismaService: PrismaService,
     private jwtService: JwtService,
     private config: ConfigService,
+    private readonly eventEmitter: TypedEventEmitter,
   ) {}
   async register(request: RegisterUserRequest): Promise<UserResponse> {
     this.logger.info(`Register new user ${JSON.stringify(request)}`);
@@ -58,6 +60,11 @@ export class AuthService {
     }
 
     registerRequest.password = await bcrypt.hash(registerRequest.password, 10);
+    const verifyCode = crypto.randomBytes(32).toString('hex');
+    const verificationCode = crypto
+      .createHash('sha256')
+      .update(verifyCode)
+      .digest('hex');
 
     const user = await this.prismaService.user.create({
       data: {
@@ -65,7 +72,20 @@ export class AuthService {
         password: registerRequest.password,
         full_name: registerRequest.full_name,
         username: registerRequest.username,
+        verificationCode,
       },
+    });
+    const redirectUrl = `${this.config.get<string>('REDIRECT_URL')}/api/v1/auth/verifyemail/${verifyCode}`;
+
+    this.eventEmitter.emit('user.welcome', {
+      name: user.full_name,
+      email: user.email,
+    });
+
+    this.eventEmitter.emit('user.verify-email', {
+      name: user.full_name,
+      email: user.email,
+      link: redirectUrl,
     });
 
     return {
@@ -81,7 +101,39 @@ export class AuthService {
       updated_at: user.updated_at,
     };
   }
+  async verifyEmail(verifyCode: string): Promise<UserResponse> {
+    const verificationCode = crypto
+      .createHash('sha256')
+      .update(verifyCode)
+      .digest('hex');
 
+    const user = await this.prismaService.user.update({
+      where: {
+        verificationCode,
+      },
+      data: {
+        verified: true,
+        verificationCode: null,
+      },
+    });
+
+    if (!user) {
+      throw new HttpException('Please register your email again', 404);
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role as user_role,
+      username: user.username,
+      photo: user.photo,
+      status: user.status as status_type,
+      verified: user.verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    };
+  }
   async login(request: LoginUserRequest): Promise<UserResponse> {
     this.logger.info(`AuthService.login(${JSON.stringify(request)})`);
     const loginUserRequest: LoginUserRequest = this.validationService.validate(
@@ -187,6 +239,7 @@ export class AuthService {
       },
     });
   }
+
   async getTokens(
     userId: string,
     email: string,
