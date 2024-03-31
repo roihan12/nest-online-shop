@@ -6,6 +6,7 @@ import { AccessTokenGuard } from './auth/guard/accessToken.guard';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypedEventEmitterModule } from './event-emitter/typed-event-emitter.module';
 import { EmailModule } from './email/email.module';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EmailModule } from './email/email.module';
     EmailModule,
     EventEmitterModule.forRoot(),
     TypedEventEmitterModule,
+    PassportModule.register({ session: true }),
   ],
   controllers: [],
   providers: [

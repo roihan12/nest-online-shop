@@ -12,9 +12,17 @@ export class ErrorFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse();
 
     if (exception instanceof HttpException) {
-      response.status(exception.getStatus()).json(exception.getResponse());
+      response.status(exception.getStatus()).json({
+        message: exception.message,
+        errors: exception.name,
+        statusCode: exception.getStatus(),
+      });
     } else if (exception instanceof UnauthorizedException) {
-      response.status(exception.getStatus()).json(exception.getResponse());
+      response.status(exception.getStatus()).json({
+        message: exception.message,
+        errors: exception.name,
+        statusCode: exception.getStatus(),
+      });
     } else if (exception instanceof ZodError) {
       const combinedErrors = exception.errors.map(
         (error) => `${error.path.join('.')} - ${error.message}`,

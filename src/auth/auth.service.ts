@@ -1,8 +1,14 @@
 import {
+  ForgotPasswordRequest,
+  GoogleUserRequest,
+  ResetPasswordRequest,
+} from './../model/user.model';
+import {
   ForbiddenException,
   HttpException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -23,6 +29,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Tokens } from 'src/model/jwt.model';
 import { TypedEventEmitter } from 'src/event-emitter/typed-event-emitter.class';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -152,7 +159,7 @@ export class AuthService {
     }
 
     if (user.verified !== true) {
-      throw new HttpException('Please verify your email', 401);
+      throw new UnauthorizedException('Please verify your email');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -161,7 +168,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new HttpException('Email or password is invalid', 401);
+      throw new UnauthorizedException('Email or password is invalid');
     }
 
     const tokens = await this.getTokens(
@@ -172,6 +179,99 @@ export class AuthService {
 
     await this.updatedRefreshTokenHash(user.id, tokens.refresh_token);
 
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role as user_role,
+      username: user.username,
+      photo: user.photo,
+      status: user.status as status_type,
+      verified: user.verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      ...tokens,
+    };
+  }
+
+  async loginGoogle(request: GoogleUserRequest): Promise<UserResponse> {
+    this.logger.info(`AuthService.loginGoogle(${JSON.stringify(request)})`);
+
+    const googleUserRequest: GoogleUserRequest =
+      this.validationService.validate(AuthValidation.GOOGLE, request);
+
+    if (!googleUserRequest.verified_email) {
+      throw new UnauthorizedException('Google account not verified');
+    }
+
+    try {
+      let user = await this.prismaService.user.findUnique({
+        where: { email: googleUserRequest.email },
+      });
+
+      const tokens = await this.getTokens(
+        user?.id,
+        user?.email,
+        user?.role as user_role,
+      );
+
+      if (!user) {
+        user = await this.createUserFromGoogle(googleUserRequest);
+      }
+
+      await this.updatedRefreshTokenHash(user.id, tokens.refresh_token);
+
+      return this.buildUserResponse(user, tokens);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to login with Google.');
+    }
+  }
+
+  private async createUserFromGoogle(
+    googleUserRequest: GoogleUserRequest,
+  ): Promise<User> {
+    const hashedPassword = await bcrypt.hash(googleUserRequest.provider, 10);
+    const newUser = await this.prismaService.user.create({
+      data: {
+        email: googleUserRequest.email,
+        full_name: googleUserRequest.displayName,
+        photo: googleUserRequest.picture,
+        username: googleUserRequest.family_name,
+        verified: true,
+        password: hashedPassword,
+        provider: googleUserRequest.provider,
+      },
+    });
+
+    return newUser;
+  }
+
+  async findUserById(id: string): Promise<UserResponse> {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id,
+      },
+    });
+    if (!user) {
+      throw new HttpException('User not found', 404);
+    }
+    return this.buildUserResponse(user, null);
+  }
+  async findUserByEmail(email: string): Promise<UserResponse> {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Please Login Again');
+    }
+    return this.buildUserResponse(user, null);
+  }
+  private async buildUserResponse(
+    user: User,
+    tokens: Tokens,
+  ): Promise<UserResponse> {
     return {
       id: user.id,
       email: user.email,
@@ -226,6 +326,98 @@ export class AuthService {
     );
     await this.updatedRefreshTokenHash(user.id, tokens.refresh_token);
     return tokens;
+  }
+
+  async forgotPassword(request: ForgotPasswordRequest): Promise<boolean> {
+    const forgotPasswordRequest: ForgotPasswordRequest =
+      this.validationService.validate(AuthValidation.FORGOT_PASSWORD, request);
+
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        email: forgotPasswordRequest.email,
+      },
+    });
+
+    if (!user) {
+      throw new HttpException('Please verify your email', 401);
+    }
+
+    if (!user.verified) {
+      throw new HttpException('Please verify your email', 401);
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    await this.prismaService.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        passwordResetToken,
+        passwordResetAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    });
+
+    const url = `${this.config.get<string>('REDIRECT_URL')}/api/v1/auth/resetpassword/${resetToken}`;
+
+    this.eventEmitter.emit('user.reset-password', {
+      name: user.full_name,
+      email: user.email,
+      link: url,
+    });
+
+    return true;
+  }
+  async resetPassword(
+    resetToken: string,
+    request: ResetPasswordRequest,
+  ): Promise<UserResponse> {
+    const resetPasswordRequest: ResetPasswordRequest =
+      this.validationService.validate(AuthValidation.RESET_PASSWORD, request);
+    const passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        passwordResetToken: passwordResetToken,
+        passwordResetAt: {
+          gt: new Date(), // Menggunakan operator `gt` untuk mencari nilai yang lebih besar dari waktu sekarang
+        },
+      },
+    });
+    if (!user) {
+      throw new HttpException('Invalid token or token has expired', 403);
+    }
+
+    const hashedPassword = await bcrypt.hash(resetPasswordRequest.password, 10);
+    await this.prismaService.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetAt: null,
+      },
+    });
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role as user_role,
+      username: user.username,
+      photo: user.photo,
+      status: user.status as status_type,
+      verified: user.verified,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    };
   }
 
   async updatedRefreshTokenHash(userId: string, refreshToken: string) {

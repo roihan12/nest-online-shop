@@ -4,10 +4,21 @@ import { AuthController } from './auth.controller';
 import { AccessTokenStrategy } from './strategies/accessToken.strategy';
 import { RefreshTokenStrategy } from './strategies/refreshToken.strategy';
 import { JwtModule } from '@nestjs/jwt';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { SessionSerializer } from './serializer/serializer';
 
 @Module({
   imports: [JwtModule.register({})],
-  providers: [AuthService, AccessTokenStrategy, RefreshTokenStrategy],
+  providers: [
+    {
+      provide: 'AUTH_SERVICE',
+      useClass: AuthService,
+    },
+    AccessTokenStrategy,
+    RefreshTokenStrategy,
+    GoogleStrategy,
+    SessionSerializer,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

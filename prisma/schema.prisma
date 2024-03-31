@@ -127,7 +127,7 @@ model TransactionsItem {
   product_name   String      @db.VarChar(255)
   price          Int
   quantity       Int
-  total_price Int
+  total_price    Int
   created_at     DateTime    @default(now()) @db.Timestamp(0)
   updated_at     DateTime    @default(now()) @db.Timestamp(0)
   transactions   Transaction @relation(fields: [transaction_id], references: [id], onUpdate: Restrict, map: "transactions_items_ibfk_1")
@@ -218,8 +218,8 @@ model User {
   refresh_token      String?        @db.Text
   verified           Boolean?       @default(false)
   status             status_type?   @default(ACTIVE)
-  verificationCode   String?        @db.Text @unique
-  provider           String?
+  verificationCode   String?        @unique @db.Text
+  provider           String?        @default("local")
   passwordResetToken String?
   passwordResetAt    DateTime?
   created_at         DateTime       @default(now()) @db.Timestamp(0)

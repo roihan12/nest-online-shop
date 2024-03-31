@@ -6,11 +6,27 @@ export class RegisterUserRequest {
   confirmPassword?: string;
 }
 
+export class GoogleUserRequest {
+  displayName: string;
+  family_name: string;
+  email: string;
+  verified_email: boolean;
+  picture: string;
+  provider: string;
+}
+
 export class LoginUserRequest {
   email: string;
   password: string;
 }
+export class ForgotPasswordRequest {
+  email: string;
+}
 
+export class ResetPasswordRequest {
+  password: string;
+  confirmPassword: string;
+}
 export enum user_role {
   ADMIN = 'ADMIN',
   USER = 'USER',
