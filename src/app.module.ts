@@ -7,6 +7,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { TypedEventEmitterModule } from './event-emitter/typed-event-emitter.module';
 import { EmailModule } from './email/email.module';
 import { PassportModule } from '@nestjs/passport';
+import { UploadModule } from './upload/upload.module';
+import { UserModule } from './user/user.module';
+import { ProductModule } from './product/product.module';
+import { ImageModule } from './image/image.module';
 
 @Module({
   imports: [
@@ -16,6 +20,10 @@ import { PassportModule } from '@nestjs/passport';
     EventEmitterModule.forRoot(),
     TypedEventEmitterModule,
     PassportModule.register({ session: true }),
+    UploadModule,
+    UserModule,
+    ProductModule,
+    ImageModule,
   ],
   controllers: [],
   providers: [

@@ -8,7 +8,7 @@ export class TestService {
   async deleteUser() {
     await this.prismaService.user.deleteMany({
       where: {
-        username: 'test',
+        OR: [{ username: 'roihan20' }, { username: 'test' }],
       },
     });
   }
@@ -16,10 +16,11 @@ export class TestService {
   async createUser() {
     await this.prismaService.user.create({
       data: {
-        email: 'test@gmail',
+        email: 'test@gmail.com',
         password: await bcrypt.hash('12345678', 10),
         full_name: 'test',
         username: 'test',
+        verified: true,
       },
     });
   }

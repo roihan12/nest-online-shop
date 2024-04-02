@@ -22,32 +22,36 @@ describe('AuthController (e2e)', () => {
     testService = app.get(TestService);
   });
 
-  describe('POST /api/v1/auth', () => {
+  describe('POST /api/v1/auth/register', () => {
     beforeEach(async () => {
       await testService.deleteUser();
     });
 
     it('should be rejected if request is invalid', async () => {
-      const response = await request(app.getHttpServer()).post('/auth').send({
-        full_name: '',
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-      });
+      const response = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          full_name: '',
+          username: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+        });
       logger.info(response.body);
       expect(response.status).toBe(400);
       expect(response.body.errors).toBeDefined();
     });
 
     it('should be able to register', async () => {
-      const response = await request(app.getHttpServer()).post('/auth').send({
-        full_name: 'test',
-        username: 'test',
-        email: 'test@gmail.com',
-        password: '12345678',
-        confirmPassword: '12345678',
-      });
+      const response = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          full_name: 'Roihan Sori',
+          username: 'roihan20',
+          email: 'roihansori20@gmail.com',
+          password: '12345678',
+          confirmPassword: '12345678',
+        });
       logger.info(response.body);
       expect(response.status).toBe(201);
       expect(response.body.data).toBeDefined();
@@ -55,28 +59,64 @@ describe('AuthController (e2e)', () => {
   });
 
   it('should be rejected if username already exist', async () => {
-    const response = await request(app.getHttpServer()).post('/auth').send({
-      full_name: 'test',
-      username: 'test',
-      email: 'test@gmail.com',
-      password: '12345678',
-      confirmPassword: '12345678',
-    });
+    const response = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        full_name: 'test',
+        username: 'roihan20',
+        email: 'test@gmail.com',
+        password: '12345678',
+        confirmPassword: '12345678',
+      });
     logger.info(response.body);
     expect(response.status).toBe(409);
     expect(response.body.errors).toBeDefined();
   });
 
   it('should be rejected if email already exist', async () => {
-    const response = await request(app.getHttpServer()).post('/auth').send({
-      full_name: 'test',
-      username: 'test',
-      email: 'test@gmail.com',
-      password: '12345678',
-      confirmPassword: '12345678',
-    });
+    const response = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        full_name: 'test',
+        username: 'test',
+        email: 'roihansori20@gmail.com',
+        password: '12345678',
+        confirmPassword: '12345678',
+      });
     logger.info(response.body);
     expect(response.status).toBe(409);
     expect(response.body.errors).toBeDefined();
+  });
+
+  describe('POST /api/v1/auth/login', () => {
+    beforeEach(async () => {
+      await testService.deleteUser();
+      await testService.createUser();
+    });
+
+    it('should be rejected if request is invalid', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          email: '',
+          password: '',
+        });
+      logger.info(response.body);
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
+    });
+
+    it('should be able to login', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          email: 'test@gmail.com',
+          password: '12345678',
+        });
+      logger.info(response.body);
+      expect(response.status).toBe(200);
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.access_token).toBeDefined();
+    });
   });
 });

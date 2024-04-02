@@ -28,7 +28,7 @@ import { PrismaService } from '../common/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Tokens } from 'src/model/jwt.model';
-import { TypedEventEmitter } from 'src/event-emitter/typed-event-emitter.class';
+import { TypedEventEmitter } from '../event-emitter/typed-event-emitter.class';
 import { User } from '@prisma/client';
 
 @Injectable()

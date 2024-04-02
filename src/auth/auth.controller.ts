@@ -8,19 +8,25 @@ import {
   Param,
   Patch,
   Post,
-  // Redirect,
   Render,
   Req,
-  // Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { WebResponse } from '../model/web.model';
+import {
+  ApiCreateResponse,
+  ApiSucessResponse,
+  BadRequestResponse,
+  InternalServerErrorResponse,
+  UnauthorizedResponse,
+  WebResponse,
+} from '../model/web.model';
 import {
   ForgotPasswordRequest,
   LoginUserRequest,
   RegisterUserRequest,
   ResetPasswordRequest,
+  TokensResponse,
   UserResponse,
 } from '../model/user.model';
 import { AccessTokenGuard } from './guard/accessToken.guard';
@@ -29,14 +35,39 @@ import { GetCurrentUser } from './decorator/get-current-user.decorator';
 import { GetCurrentUserId } from './decorator/get-current-user-id.decorator';
 import { Public } from './decorator/public..decorator';
 import { GoogleAuthGuard } from './guard/google.guard';
-// import { Request } from 'express';
-
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+@ApiTags('Auth')
 @Controller('/auth')
 export class AuthController {
   constructor(@Inject('AUTH_SERVICE') private authService: AuthService) {}
   @Public()
   @Post('/register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiCreateResponse(UserResponse)
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiBody({
+    type: RegisterUserRequest,
+    description: 'Request body to register user',
+  })
+  @ApiOperation({ summary: 'Register User' })
   async register(
     @Body() request: RegisterUserRequest,
   ): Promise<WebResponse<UserResponse>> {
@@ -52,6 +83,7 @@ export class AuthController {
   @Get('/verifyemail/:verificationCode')
   @HttpCode(HttpStatus.OK)
   @Render('success-register')
+  @ApiOperation({ summary: 'Verify Email' })
   async verifyEmail(
     @Param('verificationCode') verificationCode: string,
   ): Promise<object> {
@@ -62,6 +94,25 @@ export class AuthController {
   @Public()
   @Post('/forgot-password')
   @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiOkResponse({
+    description: 'Success response forgot password',
+    type: WebResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiBody({
+    type: ForgotPasswordRequest,
+    description: 'Request body for forgot password',
+  })
+  @ApiOperation({ summary: 'Forgot password' })
   async forgotPassword(
     @Body() request: ForgotPasswordRequest,
   ): Promise<WebResponse<UserResponse>> {
@@ -76,6 +127,22 @@ export class AuthController {
   @Public()
   @Patch('/resetpassword/:resetToken')
   @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiSucessResponse(UserResponse)
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiBody({
+    type: ForgotPasswordRequest,
+    description: 'Request body for reset password',
+  })
+  @ApiOperation({ summary: 'Reset password' })
   async resetPassword(
     @Param('resetToken') resetToken: string,
     @Body() request: ResetPasswordRequest,
@@ -91,6 +158,22 @@ export class AuthController {
   @Public()
   @Post('/login')
   @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiSucessResponse(UserResponse)
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiBody({
+    type: LoginUserRequest,
+    description: 'Request body for login',
+  })
+  @ApiOperation({ summary: 'Login user' })
   async login(
     @Body() request: LoginUserRequest,
   ): Promise<WebResponse<UserResponse>> {
@@ -104,6 +187,7 @@ export class AuthController {
 
   @Public()
   @Get('/google/login')
+  @ApiOperation({ summary: 'Login with google' })
   @UseGuards(GoogleAuthGuard)
   async loginGoogle() {
     return {
@@ -113,8 +197,8 @@ export class AuthController {
 
   @Public()
   @Get('/google/redirect')
+  @ApiOperation({ summary: 'Login with google redirect' })
   @UseGuards(GoogleAuthGuard)
-  // @Redirect('http://localhost:3000/api/v1/auth/status', 301)
   async googleRedirect(@Req() req): Promise<WebResponse<UserResponse>> {
     const response = await this.authService.loginGoogle(req.user);
     return {
@@ -123,10 +207,25 @@ export class AuthController {
       data: response,
     };
   }
-
+  @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)
   @Post('/logout')
   @HttpCode(HttpStatus.OK)
+  @ApiUnauthorizedResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: UnauthorizedResponse,
+  })
+  @ApiOkResponse({
+    description: 'Success response logout',
+    type: WebResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiOperation({ summary: 'Forgot password' })
   async logout(@GetCurrentUserId() userId: string) {
     await this.authService.logout(userId);
     return {
@@ -135,11 +234,23 @@ export class AuthController {
       data: null,
     };
   }
-
+  @ApiBearerAuth()
   @Public()
   @UseGuards(RefreshTokenGuard)
   @Post('/refresh-token')
   @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiSucessResponse(TokensResponse)
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiOperation({ summary: 'Refresh token' })
   async refreshToken(
     @GetCurrentUserId() userId: string,
     @GetCurrentUser('refreshToken') refreshToken: string,
@@ -151,10 +262,11 @@ export class AuthController {
       data: response,
     };
   }
+
   @Public()
   @Get('status')
+  @ApiOperation({ summary: 'Get status google login' })
   async user(@Req() request) {
-    console.log(request.user);
     if (request.user) {
       return { msg: 'Authenticated' };
     } else {
