@@ -8,13 +8,17 @@ export class TestService {
   async deleteUser() {
     await this.prismaService.user.deleteMany({
       where: {
-        OR: [{ username: 'roihan20' }, { username: 'test' }],
+        OR: [
+          { username: 'roihan20' },
+          { username: 'test' },
+          { username: 'testupdated' },
+        ],
       },
     });
   }
 
   async createUser() {
-    await this.prismaService.user.create({
+    return await this.prismaService.user.create({
       data: {
         email: 'test@gmail.com',
         password: await bcrypt.hash('12345678', 10),

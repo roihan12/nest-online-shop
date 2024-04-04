@@ -63,7 +63,7 @@ export class ForbiddenResponse {
   })
   statusCode: number;
   @ApiProperty({
-    example: ['Forbidden'],
+    example: 'Forbidden resource',
   })
   message: Array<string>;
   @ApiProperty({

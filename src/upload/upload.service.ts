@@ -1,55 +1,95 @@
-import { Injectable, UploadedFiles } from '@nestjs/common';
+import { Inject, Injectable, Logger, UploadedFiles } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3 } from 'aws-sdk';
-import { v4 as uuid } from 'uuid';
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { ImageService } from 'src/image/image.service';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class UploadService {
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private imageService: ImageService,
+    @Inject(WINSTON_MODULE_PROVIDER) private logger: Logger,
+  ) {}
 
   async uploadImageProductToS3(
+    productId: string,
     @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
-    const s3 = new S3({
-      accessKeyId: this.configService.get<string>('BUCKET_ACCESS_KEY'), //configService just fetches fields from env
-      secretAccessKey: this.configService.get<string>('BUCKET_SECRET_KEY'),
+  ): Promise<void> {
+    const s3 = new S3Client({
+      credentials: {
+        accessKeyId: this.configService.get<string>('BUCKET_ACCESS_KEY'), //configService just fetches fields from env
+        secretAccessKey: this.configService.get<string>('BUCKET_SECRET_KEY'),
+      },
+      region: 'idn',
+      endpoint: this.configService.get<string>('BUCKET_ENDPOINT'),
     });
-    // This creates an s3 instance which can be used to call inbuilt functions of s3
-    const uploadedFiles = [];
     for (const file of files) {
-      const params = {
+      const command = new PutObjectCommand({
         Bucket: this.configService.get<string>('BUCKET_NAME'),
-        Key: uuid(), // Adjust path as needed
+        Key: new Date().getTime().toString() + file.originalname, // Adjust path as needed
         Body: file.buffer,
-      };
+        ACL: 'public-read',
+      });
 
       try {
-        const data = await s3.upload(params).promise();
-        uploadedFiles.push(data.Location);
+        await s3.send(command);
+        const url = `https://nest-bucket.nos.jkt-1.neo.id/${command.input.Key}`;
+        await this.imageService.createImageProduct(productId, url);
       } catch (error) {
-        console.error('Error uploading file to S3:', error);
+        this.logger.error('Error uploading file to S3:', error);
       }
     }
-    return uploadedFiles;
   }
 
-  async deleteImageProductFromS3(keyToDelete: string): Promise<void> {
-    const s3 = new S3({
-      accessKeyId: this.configService.get<string>('BUCKET_ACCESS_KEY'), //configService just fetches fields from env
-      secretAccessKey: this.configService.get<string>('BUCKET_SECRET_KEY'),
+  async uploadImageProfileToS3(
+    @UploadedFiles() file: Express.Multer.File,
+  ): Promise<string> {
+    const s3 = new S3Client({
+      credentials: {
+        accessKeyId: this.configService.get<string>('BUCKET_ACCESS_KEY'), //configService just fetches fields from env
+        secretAccessKey: this.configService.get<string>('BUCKET_SECRET_KEY'),
+      },
+      region: 'idn',
       endpoint: this.configService.get<string>('BUCKET_ENDPOINT'),
     });
 
-    const params = {
-      Bucket: this.configService.get<string>('BUCKET_NAME'), // Replace with your S3 bucket name
-      Key: keyToDelete, // The key of the file you want to delete
-    };
-
+    const command = new PutObjectCommand({
+      Bucket: this.configService.get<string>('BUCKET_NAME'),
+      Key: new Date().getTime().toString() + file.originalname, // Adjust path as needed
+      Body: file.buffer,
+      ACL: 'public-read',
+    });
     try {
-      await s3.deleteObject(params).promise();
+      await s3.send(command);
+      const url = `https://nest-bucket.nos.jkt-1.neo.id/${command.input.Key}`;
+      return url;
     } catch (error) {
-      console.error('Error deleting file from S3:', error);
-      throw new Error('Failed to delete file from S3');
+      this.logger.error('Error uploading file to S3:', error);
+    }
+  }
+  async deleteFromS3(keyToDelete: string): Promise<void> {
+    const s3 = new S3Client({
+      credentials: {
+        accessKeyId: this.configService.get<string>('BUCKET_ACCESS_KEY'), //configService just fetches fields from env
+        secretAccessKey: this.configService.get<string>('BUCKET_SECRET_KEY'),
+      },
+      region: 'idn',
+      endpoint: this.configService.get<string>('BUCKET_ENDPOINT'),
+    });
+
+    const command = new DeleteObjectCommand({
+      Bucket: this.configService.get<string>('BUCKET_NAME'),
+      Key: keyToDelete,
+    });
+    try {
+      await s3.send(command);
+    } catch (err) {
+      this.logger.error(err);
     }
   }
 }

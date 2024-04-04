@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { User } from '@prisma/client';
+import { Tokens } from './jwt.model';
+export enum user_role {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+  OWNER = 'OWNER',
+}
 
+export enum status_type {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
 export class RegisterUserRequest {
   @ApiProperty({
     example: 'John Doe',
@@ -30,6 +41,69 @@ export class RegisterUserRequest {
     required: true,
   })
   confirmPassword?: string;
+}
+
+export class CreateUserRequest {
+  @ApiProperty({
+    example: 'John Doe',
+    required: true,
+  })
+  full_name: string;
+
+  @ApiProperty({
+    example: 'JohnDoe',
+    required: true,
+  })
+  username: string;
+
+  @ApiProperty({
+    example: 'jhondoe@my.com',
+    required: true,
+  })
+  email: string;
+
+  @ApiProperty({ enum: ['Admin', 'Moderator', 'User'], required: true })
+  role: user_role;
+
+  @ApiProperty({
+    example: 'password',
+    required: true,
+  })
+  password: string;
+
+  @ApiProperty({
+    example: 'password',
+    required: true,
+  })
+  confirmPassword?: string;
+}
+
+export class UpdateUserRequest {
+  @ApiProperty({
+    example: 'John Doe',
+  })
+  full_name?: string;
+
+  @ApiProperty({
+    example: 'JohnDoe',
+  })
+  username?: string;
+
+  @ApiProperty({
+    example: 'password',
+  })
+  password?: string;
+
+  @ApiProperty({ enum: ['Admin', 'Moderator', 'User'] })
+  role?: user_role;
+
+  @ApiProperty({
+    example: 'password',
+  })
+  confirmPassword?: string;
+
+  @ApiProperty({ type: 'string', format: 'binary' })
+  file?: any;
 }
 
 export class GoogleUserRequest {
@@ -73,16 +147,6 @@ export class ResetPasswordRequest {
     required: true,
   })
   confirmPassword: string;
-}
-export enum user_role {
-  ADMIN = 'ADMIN',
-  USER = 'USER',
-  OWNER = 'OWNER',
-}
-
-export enum status_type {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
 }
 
 export class UserResponse {
@@ -144,4 +208,20 @@ export class TokensResponse {
       'eyJFADrrikdzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_DDFDeed',
   })
   refresh_token: string;
+}
+
+export function buildUserResponse(user: User, tokens?: Tokens): UserResponse {
+  return {
+    id: user.id,
+    email: user.email,
+    full_name: user.full_name,
+    role: user.role as user_role,
+    username: user.username,
+    photo: user.photo,
+    status: user.status as status_type,
+    verified: user.verified,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+    ...tokens,
+  };
 }
