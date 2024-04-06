@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-
 }
 
 datasource db {
@@ -21,8 +20,8 @@ model Address {
   is_default  Boolean       @default(false)
   created_at  DateTime      @default(now()) @db.Timestamp(0)
   updated_at  DateTime      @default(now()) @db.Timestamp(0)
-  User        User          @relation(fields: [user_id], references: [id])
-  Transaction Transaction[]
+  user        User          @relation(fields: [user_id], references: [id])
+  transaction Transaction[]
 
   @@index([user_id])
   @@map("addresses")
@@ -31,9 +30,10 @@ model Address {
 model Brand {
   id         String      @id @default(uuid())
   name       String      @db.VarChar(150)
+  image_url  String
   created_at DateTime    @default(now()) @db.Timestamp(0)
   updated_at DateTime    @default(now()) @db.Timestamp(0)
-  Product    Product[]
+  product    Product[]
   status     status_type @default(ACTIVE)
 
   @@map("brands")
@@ -42,19 +42,21 @@ model Brand {
 model ShoppingCart {
   id         String   @id @default(uuid())
   user_id    String
-  productId  String
+  product_id String
+  variant_id String
   qty        Int
   created_at DateTime @default(now()) @db.Timestamp(0)
   updated_at DateTime @default(now()) @db.Timestamp(0)
-  Product    Product  @relation(fields: [productId], references: [id])
-  User       User     @relation(fields: [user_id], references: [id])
+  product    Product  @relation(fields: [product_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+  variant    Variant  @relation(fields: [variant_id], references: [id])
 
   @@index([user_id])
-  @@index([productId])
+  @@index([product_id])
   @@map("shopping_cart")
 }
 
-model Whsilist {
+model Wishlist {
   id         String   @id @default(uuid())
   product_id String
   user_id    String
@@ -74,22 +76,24 @@ model Product {
   category_id        String
   slug               String?
   name               String
-  price              Decimal
+  price              Int
   description        String             @db.Text
-  stock_sold         Int?
+  stock_sold         Int?               @default(0)
   weight             Int
-  isFeatured         Boolean            @default(false)
-  isArchived         Boolean            @default(false)
+  is_featured        Boolean            @default(false)
+  is_archived        Boolean            @default(false)
+  is_variant         Boolean            @default(false)
+  status             status_type        @default(ACTIVE)
   created_at         DateTime           @default(now()) @db.Timestamp(0)
   updated_at         DateTime           @default(now()) @db.Timestamp(0)
   images             Image[]
   brand              Brand              @relation(fields: [brand_id], references: [id])
   category           Category           @relation("CategoryToProduct", fields: [category_id], references: [id])
   reviews            Review[]
-  shoppingCart       ShoppingCart[]
+  shopping_cart      ShoppingCart[]
   transactions_items TransactionsItem[]
-  Whsilist           Whsilist[]
-  Variant            Variant[]
+  wishlist           Wishlist[]
+  variant            Variant[]
 
   @@index([category_id])
   @@index([brand_id])
@@ -112,8 +116,8 @@ model Transaction {
   shipping_cost      String?
   created_at         DateTime            @default(now()) @db.Timestamp(0)
   updated_at         DateTime            @default(now()) @db.Timestamp(0)
-  Address            Address             @relation(fields: [address_id], references: [id])
-  User               User                @relation(fields: [user_id], references: [id])
+  address            Address             @relation(fields: [address_id], references: [id])
+  user               User                @relation(fields: [user_id], references: [id])
   transactions_items TransactionsItem[]
 
   @@index([user_id])
@@ -142,7 +146,7 @@ model TransactionsItem {
 model Billboard {
   id         String      @id @default(uuid())
   label      String
-  imageUrl   String
+  image_url  String      @default("")
   created_at DateTime    @default(now()) @db.Timestamp(0)
   updated_at DateTime    @default(now()) @db.Timestamp(0)
   categories Category[]
@@ -166,16 +170,18 @@ model Category {
 }
 
 model Variant {
-  id         String      @id @default(uuid())
-  product_id String
-  name       String
-  value      String
-  price      Int
-  stok       Int
-  created_at DateTime    @default(now()) @db.Timestamp(0)
-  updated_at DateTime    @default(now()) @db.Timestamp(0)
-  products   Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  status     status_type @default(ACTIVE)
+  id           String         @id @default(uuid())
+  product_id   String
+  name         String
+  value        String
+  image_url    String
+  price        Int
+  stock        Int
+  created_at   DateTime       @default(now()) @db.Timestamp(0)
+  updated_at   DateTime       @default(now()) @db.Timestamp(0)
+  products     Product        @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  status       status_type    @default(ACTIVE)
+  ShoppingCart ShoppingCart[]
 
   @@map("variants")
 }
@@ -209,27 +215,27 @@ model Review {
 }
 
 model User {
-  id                 String         @id @unique @default(uuid())
-  username           String         @unique @db.VarChar(75)
-  role               user_role      @default(USER)
-  full_name          String         @db.VarChar(100)
-  email              String         @unique @db.VarChar(100)
-  password           String         @db.VarChar(200)
-  photo              String?        @db.Text
-  refresh_token      String?        @db.Text
-  verified           Boolean?       @default(false)
-  status             status_type?   @default(ACTIVE)
-  verificationCode   String?        @unique @db.Text
-  provider           String?        @default("local")
-  passwordResetToken String?
-  passwordResetAt    DateTime?
-  created_at         DateTime       @default(now()) @db.Timestamp(0)
-  updated_at         DateTime       @default(now()) @db.Timestamp(0)
-  Address            Address[]
-  Review             Review[]
-  ShoppingCart       ShoppingCart[]
-  Transaction        Transaction[]
-  Whsilist           Whsilist[]
+  id                   String         @id @unique @default(uuid())
+  username             String         @unique @db.VarChar(75)
+  role                 user_role      @default(USER)
+  full_name            String         @db.VarChar(100)
+  email                String         @unique @db.VarChar(100)
+  password             String         @db.VarChar(200)
+  photo                String?        @db.Text
+  refresh_token        String?        @db.Text
+  verified             Boolean?       @default(false)
+  status               status_type?   @default(ACTIVE)
+  verification_code    String?        @unique @db.Text
+  provider             String?        @default("local")
+  password_reset_token String?
+  password_reset_At    DateTime?
+  created_at           DateTime       @default(now()) @db.Timestamp(0)
+  updated_at           DateTime       @default(now()) @db.Timestamp(0)
+  address              Address[]
+  review               Review[]
+  shopping_cart        ShoppingCart[]
+  transaction          Transaction[]
+  wishlist             Wishlist[]
 
   @@map("users")
 }

@@ -20,10 +20,6 @@ export class BillboardService {
     private uploadService: UploadService,
   ) {}
 
-  async getBillboard() {
-    this.logger.debug('BillboardService.getBillboard()');
-  }
-
   async createBillboard(
     request: CreateBillboardRequest,
     file: Express.Multer.File,
@@ -43,14 +39,14 @@ export class BillboardService {
     const billboard = await this.prismaService.billboard.create({
       data: {
         label: createRequest.label,
-        imageUrl: createRequest.file,
+        image_url: createRequest.file,
       },
     });
 
     return {
       id: billboard.id,
       label: billboard.label,
-      imageUrl: billboard.imageUrl,
+      imageUrl: billboard.image_url,
       created_at: billboard.created_at,
       updated_at: billboard.updated_at,
     };
@@ -79,7 +75,7 @@ export class BillboardService {
       },
       data: {
         label: updateRequest.label,
-        imageUrl: updateRequest.file,
+        image_url: updateRequest.file,
       },
     });
 
@@ -90,7 +86,7 @@ export class BillboardService {
     return {
       id: billboard.id,
       label: billboard.label,
-      imageUrl: billboard.imageUrl,
+      imageUrl: billboard.image_url,
       created_at: billboard.created_at,
       updated_at: billboard.updated_at,
     };
@@ -109,7 +105,7 @@ export class BillboardService {
     return {
       id: billboard.id,
       label: billboard.label,
-      imageUrl: billboard.imageUrl,
+      imageUrl: billboard.image_url,
       created_at: billboard.created_at,
       updated_at: billboard.updated_at,
     };
@@ -121,7 +117,7 @@ export class BillboardService {
     return billboards.map((billboard) => ({
       id: billboard.id,
       label: billboard.label,
-      imageUrl: billboard.imageUrl,
+      imageUrl: billboard.image_url,
       created_at: billboard.created_at,
       updated_at: billboard.updated_at,
     }));

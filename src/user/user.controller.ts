@@ -246,7 +246,7 @@ export class UserController {
     )
     file: Express.Multer.File,
 
-    @Body() request: UpdateUserRequest,
+    @Body() request: UpdateUserByOwnerRequest,
   ): Promise<WebResponse<UserResponse>> {
     const response = await this.userService.updateUser(id, request, file);
     return {

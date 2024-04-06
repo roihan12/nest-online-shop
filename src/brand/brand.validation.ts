@@ -1,12 +1,12 @@
 import { z, ZodType } from 'zod';
 
-export class BillboardValidation {
+export class BrandValidation {
   static readonly Create: ZodType = z.object({
-    label: z.string().min(1).max(100),
+    name: z.string().min(1).max(100),
     file: z.string(),
   });
   static readonly Update: ZodType = z.object({
     id: z.string().min(1).max(100).uuid(),
-    label: z.string().min(1).max(100).optional(),
+    name: z.string().min(1).max(100).optional(),
   });
 }

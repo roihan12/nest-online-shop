@@ -13,7 +13,7 @@ export class WebResponse<T> {
   })
   status: boolean;
   @ApiProperty({
-    example: 'Register success',
+    example: 'Some message success',
   })
   message: string;
   @ApiProperty({})
@@ -99,7 +99,7 @@ export const ApiSucessResponse = <TModel extends Type<any>>(model: TModel) => {
           {
             properties: {
               data: {
-                items: { $ref: getSchemaPath(model) },
+                oneOf: [{ $ref: getSchemaPath(model) }],
               },
             },
           },
@@ -120,6 +120,27 @@ export const ApiCreateResponse = <TModel extends Type<any>>(model: TModel) => {
             properties: {
               data: {
                 oneOf: [{ $ref: getSchemaPath(model) }],
+              },
+            },
+          },
+        ],
+      },
+    }),
+  );
+};
+
+export const ApiArrayResponse = <TModel extends Type<any>>(model: TModel) => {
+  return applyDecorators(
+    ApiExtraModels(WebResponse, model),
+    ApiOkResponse({
+      schema: {
+        allOf: [
+          { $ref: getSchemaPath(WebResponse) },
+          {
+            properties: {
+              data: {
+                type: 'array',
+                items: { $ref: getSchemaPath(model) },
               },
             },
           },

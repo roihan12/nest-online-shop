@@ -12,6 +12,8 @@ import { UserModule } from './user/user.module';
 import { ProductModule } from './product/product.module';
 import { ImageModule } from './image/image.module';
 import { BillboardModule } from './billboard/billboard.module';
+import { BrandModule } from './brand/brand.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { BillboardModule } from './billboard/billboard.module';
     ProductModule,
     ImageModule,
     BillboardModule,
+    BrandModule,
+    CategoryModule,
   ],
   controllers: [],
   providers: [

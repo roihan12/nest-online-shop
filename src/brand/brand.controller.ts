@@ -17,12 +17,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { BillboardService } from './billboard.service';
-import {
-  BillboardResponse,
-  CreateBillboardRequest,
-  UpdateBillboardRequest,
-} from 'src/model/billboard.model';
+
 import { AccessTokenGuard } from 'src/auth/guard/accessToken.guard';
 import { RoleGuard } from 'src/auth/guard/role.guard';
 import { Roles } from 'src/auth/decorator/role.decorator';
@@ -34,6 +29,7 @@ import {
   ApiConsumes,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -48,11 +44,17 @@ import {
   UnauthorizedResponse,
   WebResponse,
 } from 'src/model/web.model';
+import { BrandService } from './brand.service';
+import {
+  BrandResponse,
+  CreateBrandRequest,
+  UpdateBrandRequest,
+} from 'src/model/brand.model';
 
-@ApiTags('Billboard')
-@Controller('billboard')
-export class BillboardController {
-  constructor(private billboardService: BillboardService) {}
+@ApiTags('Brand')
+@Controller('brand')
+export class BrandController {
+  constructor(private brandService: BrandService) {}
 
   @Post('/')
   @UseGuards(AccessTokenGuard, RoleGuard)
@@ -71,7 +73,7 @@ export class BillboardController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiCreateResponse(BillboardResponse)
+  @ApiCreateResponse(BrandResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
@@ -83,11 +85,11 @@ export class BillboardController {
     type: ForbiddenResponse,
   })
   @ApiBody({
-    type: CreateBillboardRequest,
-    description: 'Request body to create billboard',
+    type: CreateBrandRequest,
+    description: 'Request body to create brand',
   })
-  @ApiOperation({ summary: 'Create new billboard ' })
-  async createBillboard(
+  @ApiOperation({ summary: 'Create new brand ' })
+  async createBrand(
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -97,12 +99,12 @@ export class BillboardController {
       }),
     )
     file: Express.Multer.File,
-    @Body() request: CreateBillboardRequest,
-  ): Promise<WebResponse<BillboardResponse>> {
-    const response = await this.billboardService.createBillboard(request, file);
+    @Body() request: CreateBrandRequest,
+  ): Promise<WebResponse<BrandResponse>> {
+    const response = await this.brandService.createBrand(request, file);
     return {
       status: true,
-      message: 'Create billboard success',
+      message: 'Create new brand success',
       data: response,
     };
   }
@@ -124,7 +126,7 @@ export class BillboardController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiSucessResponse(BillboardResponse)
+  @ApiSucessResponse(BrandResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
@@ -136,14 +138,14 @@ export class BillboardController {
     type: ForbiddenResponse,
   })
   @ApiBody({
-    type: UpdateBillboardRequest,
-    description: 'Request body to update billboard',
+    type: UpdateBrandRequest,
+    description: 'Request body to update brand',
   })
-  @ApiOperation({ summary: 'Update billboard ' })
-  async UpdateBillboard(
+  @ApiOperation({ summary: 'Update brand ' })
+  async UpdateBrand(
     @Param('id', ParseUUIDPipe) id: string,
     @Body()
-    request: UpdateBillboardRequest,
+    request: UpdateBrandRequest,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addMaxSizeValidator({ maxSize: 2048 })
@@ -156,13 +158,12 @@ export class BillboardController {
         }),
     )
     file?: Express.Multer.File,
-  ): Promise<WebResponse<BillboardResponse>> {
-    console.log(request, id);
+  ): Promise<WebResponse<BrandResponse>> {
     request.id = id;
-    const response = await this.billboardService.updateBillboard(request, file);
+    const response = await this.brandService.updateBrand(request, file);
     return {
       status: true,
-      message: 'Update billboard success',
+      message: 'Update brand success',
       data: response,
     };
   }
@@ -181,7 +182,10 @@ export class BillboardController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiSucessResponse(BillboardResponse)
+  @ApiOkResponse({
+    description: 'Delete brand success',
+    type: WebResponse,
+  })
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
@@ -192,14 +196,14 @@ export class BillboardController {
     description: 'Forbidden resource',
     type: ForbiddenResponse,
   })
-  @ApiOperation({ summary: 'Delete billboard' })
-  async deleteBillboard(
+  @ApiOperation({ summary: 'Delete brand' })
+  async deleteBrand(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<boolean>> {
-    await this.billboardService.deleteBillboard(id);
+    await this.brandService.deleteBrand(id);
     return {
       status: true,
-      message: 'Delete billboard success',
+      message: 'Delete brand success',
       data: true,
     };
   }
@@ -212,7 +216,7 @@ export class BillboardController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiSucessResponse(BillboardResponse)
+  @ApiSucessResponse(BrandResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
@@ -226,11 +230,11 @@ export class BillboardController {
   @ApiOperation({ summary: 'Get billboard by id' })
   async getBillboardById(
     @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<WebResponse<BillboardResponse>> {
-    const response = await this.billboardService.getBillboardById(id);
+  ): Promise<WebResponse<BrandResponse>> {
+    const response = await this.brandService.getBrandById(id);
     return {
       status: true,
-      message: 'Get billboard by id success',
+      message: 'Get brand by id success',
       data: response,
     };
   }
@@ -243,7 +247,7 @@ export class BillboardController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiArrayResponse(BillboardResponse)
+  @ApiArrayResponse(BrandResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
@@ -254,12 +258,12 @@ export class BillboardController {
     description: 'Forbidden resource',
     type: ForbiddenResponse,
   })
-  @ApiOperation({ summary: 'Get all billboards' })
-  async getAllBillboards(): Promise<WebResponse<BillboardResponse[]>> {
-    const response = await this.billboardService.getAllBillboard();
+  @ApiOperation({ summary: 'Get all brand' })
+  async getAllBrands(): Promise<WebResponse<BrandResponse[]>> {
+    const response = await this.brandService.getAllBrand();
     return {
       status: true,
-      message: 'Get all billboards success',
+      message: 'Get all brands success',
       data: response,
     };
   }
