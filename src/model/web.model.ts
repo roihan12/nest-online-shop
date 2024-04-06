@@ -16,7 +16,7 @@ export class WebResponse<T> {
     example: 'Register success',
   })
   message: string;
-
+  @ApiProperty({})
   data?: T;
   errors?: string;
 }

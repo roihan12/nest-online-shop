@@ -2,13 +2,11 @@ import {
   Body,
   Controller,
   Delete,
-  FileTypeValidator,
   Get,
   HttpCode,
   HttpStatus,
-  MaxFileSizeValidator,
   Param,
-  ParseFilePipe,
+  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -40,6 +38,7 @@ import {
 } from '../model/web.model';
 import {
   CreateUserRequest,
+  UpdateUserByOwnerRequest,
   UpdateUserRequest,
   UserResponse,
 } from '../model/user.model';
@@ -101,7 +100,7 @@ export class UserController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiOperation({ summary: 'Get profile user' })
+  @ApiOperation({ summary: 'Get user by id' })
   async getUserById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<UserResponse>> {
@@ -146,7 +145,7 @@ export class UserController {
     };
   }
 
-  @Patch('/update')
+  @Patch('/')
   @UseGuards(AccessTokenGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -175,17 +174,23 @@ export class UserController {
   @ApiOperation({ summary: 'Update User' })
   async updateUser(
     @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
-        ],
-      }),
+      new ParseFilePipeBuilder()
+        .addMaxSizeValidator({ maxSize: 2048 })
+        .addFileTypeValidator({
+          fileType: '.(png|jpeg|jpg)',
+        })
+        .build({
+          fileIsRequired: false,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
     )
     file: Express.Multer.File,
     @GetCurrentUser('userId') userId: string,
     @Body() request: UpdateUserRequest,
   ): Promise<WebResponse<UserResponse>> {
+    if (request.role) {
+      delete request.role;
+    }
     const response = await this.userService.updateUser(userId, request, file);
     return {
       status: true,
@@ -194,7 +199,7 @@ export class UserController {
     };
   }
 
-  @Patch('/update/:id')
+  @Patch('/:id')
   @UseGuards(AccessTokenGuard, RoleGuard)
   @Roles(['OWNER'])
   @UseInterceptors(FileInterceptor('file'))
@@ -222,19 +227,22 @@ export class UserController {
     type: ForbiddenResponse,
   })
   @ApiBody({
-    type: UpdateUserRequest,
-    description: 'Request body to update user',
+    type: UpdateUserByOwnerRequest,
+    description: 'Request body to update user by owner',
   })
   @ApiOperation({ summary: 'Update user by owner' })
   async updateUserByOwner(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new FileTypeValidator({ fileType: '.(png|jpeg|jpg)' }),
-          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 4 }),
-        ],
-      }),
+      new ParseFilePipeBuilder()
+        .addMaxSizeValidator({ maxSize: 2048 })
+        .addFileTypeValidator({
+          fileType: '.(png|jpeg|jpg)',
+        })
+        .build({
+          fileIsRequired: false,
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        }),
     )
     file: Express.Multer.File,
 
@@ -248,7 +256,7 @@ export class UserController {
     };
   }
 
-  @Post('/create')
+  @Post('/')
   @UseGuards(AccessTokenGuard, RoleGuard)
   @Roles(['ADMIN', 'OWNER'])
   @ApiBearerAuth()

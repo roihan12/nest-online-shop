@@ -11,6 +11,7 @@ import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
 import { ProductModule } from './product/product.module';
 import { ImageModule } from './image/image.module';
+import { BillboardModule } from './billboard/billboard.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ImageModule } from './image/image.module';
     UserModule,
     ProductModule,
     ImageModule,
+    BillboardModule,
   ],
   controllers: [],
   providers: [

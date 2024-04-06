@@ -62,7 +62,7 @@ export class CreateUserRequest {
   })
   email: string;
 
-  @ApiProperty({ enum: ['Admin', 'Moderator', 'User'], required: true })
+  @ApiProperty({ enum: ['ADMIN', 'OWNER', 'USER'], required: true })
   role: user_role;
 
   @ApiProperty({
@@ -81,28 +81,66 @@ export class CreateUserRequest {
 export class UpdateUserRequest {
   @ApiProperty({
     example: 'John Doe',
+    required: false,
   })
   full_name?: string;
 
   @ApiProperty({
     example: 'JohnDoe',
+    required: false,
   })
   username?: string;
 
   @ApiProperty({
     example: 'password',
+    required: false,
   })
   password?: string;
 
-  @ApiProperty({ enum: ['Admin', 'Moderator', 'User'] })
+  @ApiProperty({ enum: ['ADMIN', 'USER'], required: false })
   role?: user_role;
 
   @ApiProperty({
     example: 'password',
+    required: false,
   })
   confirmPassword?: string;
 
-  @ApiProperty({ type: 'string', format: 'binary' })
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
+  file?: any;
+}
+export class UpdateUserByOwnerRequest {
+  @ApiProperty({
+    example: 'John Doe',
+    required: false,
+  })
+  full_name?: string;
+
+  @ApiProperty({
+    example: 'JohnDoe',
+    required: false,
+  })
+  username?: string;
+
+  @ApiProperty({
+    example: 'password',
+    required: false,
+  })
+  password?: string;
+
+  @ApiProperty({ enum: ['ADMIN', 'USER'], required: false })
+  role?: user_role;
+
+  @ApiProperty({ enum: ['ACTIVE', 'INACTIVE'], required: false })
+  status?: status_type;
+
+  @ApiProperty({
+    example: 'password',
+    required: false,
+  })
+  confirmPassword?: string;
+
+  @ApiProperty({ type: 'string', format: 'binary', required: false })
   file?: any;
 }
 
