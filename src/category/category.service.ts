@@ -42,7 +42,7 @@ export class CategoryService {
   async createCategory(
     request: CreateCategoryRequest,
   ): Promise<CategoryResponse> {
-    this.logger.debug('CategoryService.createCategory()');
+    this.logger.debug(`CategoryService.createCategory(${request}) `);
 
     const createRequest: CreateCategoryRequest =
       this.validationService.validate(CategoryValidation.Create, request);

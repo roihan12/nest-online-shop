@@ -27,6 +27,14 @@ export class BillboardService {
     this.logger.debug(
       `BillboardService.createBillboard() ${JSON.stringify(request)}`,
     );
+    if (file) {
+      const imageUrl = await this.uploadService.uploadImageProfileToS3(file);
+      if (imageUrl) {
+        request.file = imageUrl;
+      }
+    } else {
+      throw new HttpException('Image is required', 400);
+    }
 
     const createRequest: CreateBillboardRequest =
       this.validationService.validate(BillboardValidation.Create, request);

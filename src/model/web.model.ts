@@ -19,6 +19,27 @@ export class WebResponse<T> {
   @ApiProperty({})
   data?: T;
   errors?: string;
+  paging?: Paging;
+}
+
+export class Paging {
+  @ApiProperty({
+    example: 10,
+    type: Number,
+  })
+  size: number;
+
+  @ApiProperty({
+    example: 100,
+    type: Number,
+  })
+  total_page: number;
+
+  @ApiProperty({
+    example: 1,
+    type: Number,
+  })
+  current_page: number;
 }
 
 export class BadRequestResponse {
@@ -139,6 +160,29 @@ export const ApiArrayResponse = <TModel extends Type<any>>(model: TModel) => {
           {
             properties: {
               data: {
+                type: 'array',
+                items: { $ref: getSchemaPath(model) },
+              },
+            },
+          },
+        ],
+      },
+    }),
+  );
+};
+
+export const ApiPaginatedResponse = <TModel extends Type<any>>(
+  model: TModel,
+) => {
+  return applyDecorators(
+    ApiExtraModels(Paging, model),
+    ApiOkResponse({
+      schema: {
+        allOf: [
+          { $ref: getSchemaPath(Paging) },
+          {
+            properties: {
+              results: {
                 type: 'array',
                 items: { $ref: getSchemaPath(model) },
               },

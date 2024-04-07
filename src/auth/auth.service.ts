@@ -79,7 +79,7 @@ export class AuthService {
         password: registerRequest.password,
         full_name: registerRequest.full_name,
         username: registerRequest.username,
-        verificationCode,
+        verification_code: verificationCode,
       },
     });
     const redirectUrl = `${this.config.get<string>('REDIRECT_URL')}/api/v1/auth/verifyemail/${verifyCode}`;
@@ -116,11 +116,11 @@ export class AuthService {
 
     const user = await this.prismaService.user.update({
       where: {
-        verificationCode,
+        verification_code: verificationCode,
       },
       data: {
         verified: true,
-        verificationCode: null,
+        verification_code: null,
       },
     });
 
@@ -357,8 +357,8 @@ export class AuthService {
         id: user.id,
       },
       data: {
-        passwordResetToken,
-        passwordResetAt: new Date(Date.now() + 10 * 60 * 1000),
+        password_reset_token: passwordResetToken,
+        password_reset_At: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
 
@@ -385,8 +385,8 @@ export class AuthService {
 
     const user = await this.prismaService.user.findFirst({
       where: {
-        passwordResetToken: passwordResetToken,
-        passwordResetAt: {
+        password_reset_token: passwordResetToken,
+        password_reset_At: {
           gt: new Date(), // Menggunakan operator `gt` untuk mencari nilai yang lebih besar dari waktu sekarang
         },
       },
@@ -402,8 +402,8 @@ export class AuthService {
       },
       data: {
         password: hashedPassword,
-        passwordResetToken: null,
-        passwordResetAt: null,
+        password_reset_token: null,
+        password_reset_At: null,
       },
     });
     return {

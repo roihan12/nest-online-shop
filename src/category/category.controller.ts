@@ -42,6 +42,7 @@ import {
   CreateCategoryRequest,
   UpdateCategoryRequest,
 } from 'src/model/category.model';
+import { Public } from 'src/auth/decorator/public..decorator';
 
 @ApiTags('Category')
 @Controller('category')
@@ -138,6 +139,7 @@ export class CategoryController {
   @Delete('/:id')
   @UseGuards(AccessTokenGuard, RoleGuard)
   @Roles(['ADMIN', 'OWNER'])
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiBadRequestResponse({
     status: 400,
@@ -161,7 +163,7 @@ export class CategoryController {
     type: ForbiddenResponse,
   })
   @ApiOperation({ summary: 'Delete category' })
-  async deleteBillboard(
+  async deleteCategory(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<boolean>> {
     await this.categoryService.deleteCategory(id);
@@ -172,18 +174,13 @@ export class CategoryController {
     };
   }
 
+  @Public()
   @Get('/:id')
-  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBadRequestResponse({
     status: 400,
     description: 'Bad Request',
     type: BadRequestResponse,
-  })
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
   })
   @ApiSucessResponse(CategoryResponse)
   @ApiInternalServerErrorResponse({
@@ -191,13 +188,8 @@ export class CategoryController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiForbiddenResponse({
-    status: 403,
-    description: 'Forbidden resource',
-    type: ForbiddenResponse,
-  })
   @ApiOperation({ summary: 'Get category by id' })
-  async getBillboardById(
+  async getCategoryById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<CategoryResponse>> {
     const response = await this.categoryService.getCategoryById(id);
@@ -208,18 +200,13 @@ export class CategoryController {
     };
   }
 
+  @Public()
   @Get('/')
-  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
   @ApiBadRequestResponse({
     status: 400,
     description: 'Bad Request',
     type: BadRequestResponse,
-  })
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
   })
   @ApiArrayResponse(CategoryResponse)
   @ApiInternalServerErrorResponse({
@@ -227,13 +214,8 @@ export class CategoryController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiForbiddenResponse({
-    status: 403,
-    description: 'Forbidden resource',
-    type: ForbiddenResponse,
-  })
   @ApiOperation({ summary: 'Get all categories' })
-  async getAllBillboards(): Promise<WebResponse<CategoryResponse[]>> {
+  async getAllCategories(): Promise<WebResponse<CategoryResponse[]>> {
     const response = await this.categoryService.getAllCategory();
     return {
       status: true,

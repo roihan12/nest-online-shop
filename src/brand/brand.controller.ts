@@ -50,6 +50,7 @@ import {
   CreateBrandRequest,
   UpdateBrandRequest,
 } from 'src/model/brand.model';
+import { Public } from 'src/auth/decorator/public..decorator';
 
 @ApiTags('Brand')
 @Controller('brand')
@@ -207,25 +208,14 @@ export class BrandController {
       data: true,
     };
   }
-
+  @Public()
   @Get('/:id')
-  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
-  })
   @ApiSucessResponse(BrandResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
-  })
-  @ApiForbiddenResponse({
-    status: 403,
-    description: 'Forbidden resource',
-    type: ForbiddenResponse,
   })
   @ApiOperation({ summary: 'Get billboard by id' })
   async getBillboardById(
@@ -239,24 +229,14 @@ export class BrandController {
     };
   }
 
+  @Public()
   @Get('/')
-  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
-  })
   @ApiArrayResponse(BrandResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
-  })
-  @ApiForbiddenResponse({
-    status: 403,
-    description: 'Forbidden resource',
-    type: ForbiddenResponse,
   })
   @ApiOperation({ summary: 'Get all brand' })
   async getAllBrands(): Promise<WebResponse<BrandResponse[]>> {

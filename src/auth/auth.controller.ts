@@ -225,7 +225,7 @@ export class AuthController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiOperation({ summary: 'Forgot password' })
+  @ApiOperation({ summary: 'Logout' })
   async logout(@GetCurrentUserId() userId: string) {
     await this.authService.logout(userId);
     return {

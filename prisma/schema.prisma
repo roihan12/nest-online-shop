@@ -76,10 +76,11 @@ model Product {
   category_id        String
   slug               String?
   name               String
-  price              Int
+  price              Int?
   description        String             @db.Text
   stock_sold         Int?               @default(0)
   weight             Int
+  stock              Int?
   is_featured        Boolean            @default(false)
   is_archived        Boolean            @default(false)
   is_variant         Boolean            @default(false)

@@ -48,6 +48,7 @@ import {
   UnauthorizedResponse,
   WebResponse,
 } from 'src/model/web.model';
+import { Public } from 'src/auth/decorator/public..decorator';
 
 @ApiTags('Billboard')
 @Controller('billboard')
@@ -99,6 +100,7 @@ export class BillboardController {
     file: Express.Multer.File,
     @Body() request: CreateBillboardRequest,
   ): Promise<WebResponse<BillboardResponse>> {
+    console.log(file);
     const response = await this.billboardService.createBillboard(request, file);
     return {
       status: true,
@@ -169,6 +171,7 @@ export class BillboardController {
 
   @Delete('/:id')
   @UseGuards(AccessTokenGuard, RoleGuard)
+  @ApiBearerAuth()
   @Roles(['ADMIN', 'OWNER'])
   @HttpCode(HttpStatus.OK)
   @ApiBadRequestResponse({
@@ -204,8 +207,8 @@ export class BillboardController {
     };
   }
 
+  @Public()
   @Get('/:id')
-  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
   @ApiUnauthorizedResponse({
     status: 401,
@@ -235,8 +238,8 @@ export class BillboardController {
     };
   }
 
+  @Public()
   @Get('/')
-  @UseGuards(AccessTokenGuard)
   @HttpCode(HttpStatus.OK)
   @ApiUnauthorizedResponse({
     status: 401,

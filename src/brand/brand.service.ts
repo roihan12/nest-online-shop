@@ -25,17 +25,18 @@ export class BrandService {
     file: Express.Multer.File,
   ): Promise<BrandResponse> {
     this.logger.debug(`BrandService.createBrand() ${JSON.stringify(request)}`);
-
+    if (file) {
+      const imageUrl = await this.uploadService.uploadImageProfileToS3(file);
+      if (imageUrl) {
+        request.file = imageUrl;
+      }
+    } else {
+      throw new HttpException('Image is required', 400);
+    }
     const createRequest: CreateBrandRequest = this.validationService.validate(
       BrandValidation.Create,
       request,
     );
-    if (file) {
-      const imageUrl = await this.uploadService.uploadImageProfileToS3(file);
-      if (imageUrl) {
-        createRequest.file = imageUrl;
-      }
-    }
     const newBrand = await this.prismaService.brand.create({
       data: {
         name: createRequest.name,
