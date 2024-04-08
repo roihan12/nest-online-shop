@@ -7,7 +7,6 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -33,17 +32,17 @@ import {
 } from '../model/web.model';
 import { AccessTokenGuard } from '../auth/guard/accessToken.guard';
 import { GetCurrentUser } from '../auth/decorator/get-current-user.decorator';
-import { AddressService } from './address.service';
+import { WishlistService } from './wishlist.service';
 import {
-  AddressResponse,
-  CreateAddressRequest,
-  UpdateAddressRequest,
-} from 'src/model/address.model';
+  CreateWishlistRequest,
+  DeleteWishlistRequest,
+  WishlistResponse,
+} from 'src/model/wishlist.model';
 
-@ApiTags('Addresses')
-@Controller('addresses')
-export class AddressController {
-  constructor(private addressService: AddressService) {}
+@ApiTags('Wishlist')
+@Controller('wishlist')
+export class WishlistController {
+  constructor(private wishlistService: WishlistService) {}
 
   @Get('/')
   @ApiBearerAuth()
@@ -54,52 +53,20 @@ export class AddressController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiSucessResponse(AddressResponse)
+  @ApiSucessResponse(WishlistResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiOperation({ summary: 'Get all address user' })
-  async getAddresses(
+  @ApiOperation({ summary: 'Get all wishlist user' })
+  async getMyWishlist(
     @GetCurrentUserId() userId: string,
-  ): Promise<WebResponse<AddressResponse[]>> {
-    const response = await this.addressService.listAddress(userId);
+  ): Promise<WebResponse<WishlistResponse[]>> {
+    const response = await this.wishlistService.listWishlist(userId);
     return {
       status: true,
-      message: 'Get list address Success',
-      data: response,
-    };
-  }
-
-  @Get('/:id')
-  @ApiBearerAuth()
-  @UseGuards(AccessTokenGuard)
-  @HttpCode(HttpStatus.OK)
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
-  })
-  @ApiSucessResponse(AddressResponse)
-  @ApiForbiddenResponse({
-    description: 'Forbidden response',
-    type: ForbiddenResponse,
-  })
-  @ApiInternalServerErrorResponse({
-    status: 500,
-    description: 'Internal Server error',
-    type: InternalServerErrorResponse,
-  })
-  @ApiOperation({ summary: 'Get address by id' })
-  async getAddressById(
-    @GetCurrentUserId() userId: string,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<WebResponse<AddressResponse>> {
-    const response = await this.addressService.getAddressById(userId, id);
-    return {
-      status: true,
-      message: 'Get address by id success',
+      message: 'Get list wishlist Success',
       data: response,
     };
   }
@@ -114,7 +81,7 @@ export class AddressController {
     type: UnauthorizedResponse,
   })
   @ApiOkResponse({
-    description: 'Success response logout',
+    description: 'Success response delete wishlist',
     type: WebResponse,
   })
   @ApiInternalServerErrorResponse({
@@ -126,53 +93,20 @@ export class AddressController {
     description: 'Forbidden response',
     type: ForbiddenResponse,
   })
-  @ApiOperation({ summary: 'Delete address' })
+  @ApiOperation({ summary: 'Delete wishlist' })
   async DeleteUser(
     @GetCurrentUserId() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<boolean>> {
-    await this.addressService.remove(userId, id);
-    return {
-      status: true,
-      message: 'Delete user success',
-      data: true,
+    const request: DeleteWishlistRequest = {
+      id,
+      user_id: userId,
     };
-  }
-
-  @Patch('/:id')
-  @UseGuards(AccessTokenGuard)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiBadRequestResponse({
-    status: 400,
-    description: 'Bad Request',
-    type: BadRequestResponse,
-  })
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
-  })
-  @ApiSucessResponse(AddressResponse)
-  @ApiInternalServerErrorResponse({
-    status: 500,
-    description: 'Internal Server error',
-    type: InternalServerErrorResponse,
-  })
-  @ApiBody({
-    type: UpdateAddressRequest,
-    description: 'Request body to update user address',
-  })
-  @ApiOperation({ summary: 'Update user address' })
-  async updateAddress(
-    @GetCurrentUser('userId') userId: string,
-    @Body() request: UpdateAddressRequest,
-  ): Promise<WebResponse<AddressResponse>> {
-    const response = await this.addressService.updateAddress(userId, request);
+    await this.wishlistService.remove(request);
     return {
       status: true,
-      message: 'Update user address success',
-      data: response,
+      message: 'Delete wishlist user success',
+      data: true,
     };
   }
 
@@ -200,21 +134,68 @@ export class AddressController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiSucessResponse(AddressResponse)
+  @ApiSucessResponse(WishlistResponse)
   @ApiBody({
-    type: CreateAddressRequest,
-    description: 'Request body to create address user',
+    type: CreateWishlistRequest,
+    description: 'Request body to create new wishlist user',
   })
-  @ApiOperation({ summary: 'Create new User' })
-  async createAddress(
+  @ApiOperation({ summary: 'create new wishlist user' })
+  async createWishlist(
     @GetCurrentUser('userId') userId: string,
-    @Body() request: CreateAddressRequest,
-  ): Promise<WebResponse<AddressResponse>> {
-    const response = await this.addressService.createAddress(userId, request);
+    @Body() request: CreateWishlistRequest,
+  ): Promise<WebResponse<WishlistResponse>> {
+    request.user_id = userId;
+    const response = await this.wishlistService.addToWishlist(request);
     return {
       status: true,
-      message: 'Create user address success',
+      message: 'Create user wishlist success',
       data: response,
+    };
+  }
+
+  @Post('delete-many')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiUnauthorizedResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: UnauthorizedResponse,
+  })
+  @ApiForbiddenResponse({
+    status: 403,
+    description: 'Forbidden resource',
+    type: ForbiddenResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiSucessResponse(WishlistResponse)
+  @ApiBody({
+    type: Array<string>,
+    description: 'Request body to delete many wishlist user',
+  })
+  @ApiOperation({ summary: 'Delete many wishlist user' })
+  async deleteMany(
+    @GetCurrentUser('userId') userId: string,
+    @Body('wishlistId', ParseUUIDPipe) wishlistId: string[],
+  ): Promise<WebResponse<boolean>> {
+    if (!wishlistId || wishlistId.length === 0) {
+      throw new Error('No Wishlist ID provided');
+    }
+    await this.wishlistService.removeMany(userId, wishlistId);
+
+    return {
+      status: true,
+      message: 'Delete many wishlist user success',
+      data: true,
     };
   }
 }

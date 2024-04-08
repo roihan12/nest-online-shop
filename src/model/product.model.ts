@@ -86,7 +86,7 @@ export class ProductResponse {
       oneOf: [{ $ref: getSchemaPath(ImageResponse) }],
     },
   })
-  images: ImageResponse[];
+  images?: ImageResponse[];
 
   @ApiProperty({
     example: '2022-01-01T00:00:00.000Z',

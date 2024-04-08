@@ -27,6 +27,10 @@ export class UserService {
       where: { id: userId },
     });
 
+    if (!user) {
+      throw new HttpException('Unauthorized', 401);
+    }
+
     return buildUserResponse(user);
   }
 
