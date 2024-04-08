@@ -12,9 +12,11 @@ model Address {
   user_id     String
   name        String        @db.VarChar(50)
   phone       String        @db.VarChar(20)
-  address     String        @db.Text
+  street      String        @db.Text
+  country     String        @db.VarChar(100)
+  province    String        @db.VarChar(100)
   city        String        @db.VarChar(100)
-  state       String        @db.VarChar(100)
+  subdistrict String        @db.VarChar(100)
   type_name   type_address  @default(HOME)
   postal_code String        @db.VarChar(20)
   is_default  Boolean       @default(false)

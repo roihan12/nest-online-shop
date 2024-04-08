@@ -15,6 +15,11 @@ import { BillboardModule } from './billboard/billboard.module';
 import { BrandModule } from './brand/brand.module';
 import { CategoryModule } from './category/category.module';
 import { VariantModule } from './variant/variant.module';
+import { AddressModule } from './address/address.module';
+import { ShoppingCartModule } from './shopping-cart/shopping-cart.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { TransactionModule } from './transaction/transaction.module';
+import { TransactionItemsModule } from './transaction-items/transaction-items.module';
 
 @Module({
   imports: [
@@ -32,6 +37,11 @@ import { VariantModule } from './variant/variant.module';
     BrandModule,
     CategoryModule,
     VariantModule,
+    AddressModule,
+    ShoppingCartModule,
+    WishlistModule,
+    TransactionModule,
+    TransactionItemsModule,
   ],
   controllers: [],
   providers: [
