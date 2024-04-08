@@ -7,7 +7,6 @@ import {
   HttpException,
   HttpStatus,
   Param,
-  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -252,7 +251,7 @@ export class ProductController {
     @Query('name') name?: string,
     @Query('brand_id') brand_id?: string,
     @Query('category_id') category_id?: string,
-    @Query('sort', new ParseEnumPipe({ optional: true }))
+    @Query('sort')
     sort?: 'ASC' | 'DESC' | 'Price (Low to High)' | 'Price (High to Low)',
     @Query('pmax') pmax?: number,
     @Query('pmin') pmin?: number,

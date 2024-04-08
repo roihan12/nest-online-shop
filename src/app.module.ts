@@ -14,6 +14,7 @@ import { ImageModule } from './image/image.module';
 import { BillboardModule } from './billboard/billboard.module';
 import { BrandModule } from './brand/brand.module';
 import { CategoryModule } from './category/category.module';
+import { VariantModule } from './variant/variant.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CategoryModule } from './category/category.module';
     BillboardModule,
     BrandModule,
     CategoryModule,
+    VariantModule,
   ],
   controllers: [],
   providers: [

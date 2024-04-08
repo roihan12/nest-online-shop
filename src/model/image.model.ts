@@ -32,3 +32,13 @@ export class CreateImageRequest {
   @ApiProperty({ type: 'string', format: 'binary', required: true })
   file: any;
 }
+
+export class DeleteProductImageRequest {
+  product_id: string;
+  image_id: string;
+}
+
+export class GetProductImageRequest {
+  product_id: string;
+  image_id: string;
+}

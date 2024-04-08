@@ -43,14 +43,6 @@ export class UserService {
       UserValidation.UPDATE,
       request,
     );
-
-    if (file) {
-      const imageUrl = await this.uploadService.uploadImageProfileToS3(file);
-      if (imageUrl) {
-        updateRequest.file = imageUrl;
-      }
-    }
-
     const user = await this.prismaService.user.findFirst({
       where: {
         id: userId,
@@ -59,6 +51,14 @@ export class UserService {
 
     if (!user) {
       throw new HttpException('User not found', 404);
+    }
+
+    if (file) {
+      const imageUrl = await this.uploadService.uploadImageProfileToS3(file);
+      if (imageUrl) {
+        updateRequest.file = imageUrl;
+      }
+      await this.uploadService.deleteFromS3(user.photo);
     }
 
     if (updateRequest.full_name) {

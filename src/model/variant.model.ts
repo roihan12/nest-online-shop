@@ -34,6 +34,11 @@ export class VariantResponse {
   @ApiProperty({
     example: 'https://example.com/image.png',
   })
+  image_url: string;
+
+  @ApiProperty({
+    example: 'https://example.com/image.png',
+  })
   status: 'ACTIVE' | 'INACTIVE';
 
   @ApiProperty({
@@ -105,4 +110,13 @@ export class UpdateVariantRequest {
   stock: number;
   @ApiProperty({ type: 'string', format: 'binary', required: true })
   variant_image: any;
+}
+
+export class GetVariantRequest {
+  product_id: string;
+  variant_id: string;
+}
+export class DeleteVariantRequest {
+  product_id: string;
+  variant_id: string;
 }

@@ -40,6 +40,12 @@ export class Paging {
     type: Number,
   })
   current_page: number;
+
+  @ApiProperty({
+    example: 10,
+    type: Number,
+  })
+  count_item_in_page: number;
 }
 
 export class BadRequestResponse {
