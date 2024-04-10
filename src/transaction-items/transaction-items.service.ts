@@ -34,4 +34,23 @@ export class TransactionItemsService {
       throw error; // Rethrow the error to be handled by the caller
     }
   }
+
+  async getTransactionItemsByTransactionId(transaction_id: string) {
+    return await this.prismaService.transactionsItem.findMany({
+      where: {
+        transaction_id,
+      },
+      include: {
+        products: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            images: true,
+            variant: true,
+          },
+        },
+      },
+    });
+  }
 }

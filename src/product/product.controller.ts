@@ -111,6 +111,12 @@ export class ProductController {
         HttpStatus.BAD_REQUEST,
       );
     }
+    if (
+      typeof request.is_variant === 'string' &&
+      request.is_variant === 'false'
+    ) {
+      request.is_variant = false;
+    }
     request.price = Number(request.price);
     request.is_featured = Boolean(request.is_featured);
     request.is_variant = Boolean(request.is_variant);
@@ -119,7 +125,7 @@ export class ProductController {
       v.price = Number(v.price);
       v.stock = Number(v.stock);
     });
-    console.log(request);
+
     const response = await this.productService.createProduct(
       request,
       files.product_images,

@@ -303,7 +303,7 @@ export class ProductService {
       message: 'Search Success',
       data: products.map((product) => toProductResponse(product)),
       paging: {
-        count_item_in_page: total,
+        count_item: total,
         current_page: searchRequest.page,
         size: searchRequest.size,
         total_page: Math.ceil(total / searchRequest.size),

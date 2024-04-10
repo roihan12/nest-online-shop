@@ -1,7 +1,15 @@
 import { TransactionItemResponse } from './transaction-item.model';
 import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { ShoppingCartResponse } from './shopping-cart.model';
+import { AddressResponse } from './address.model';
 
+export enum TransactionStatus {
+  PENDING_PAYMENT = 'PENDING_PAYMENT',
+  PAID = 'PAID',
+  CANCELED = 'CANCELED',
+  SHIPPING = 'SHIPPING',
+  DELIVERED = 'DELIVERED', // Tambahkan status barang telah diterima
+}
 export class TransactionResponse {
   @ApiProperty({
     example: 'bb75f39c-ca23-4045-a3c1-5516ce5af205',
@@ -19,6 +27,11 @@ export class TransactionResponse {
   address_id: string;
 
   @ApiProperty({
+    example: AddressResponse,
+  })
+  address?: AddressResponse;
+
+  @ApiProperty({
     example: 'John Doe',
   })
   customer_name: string;
@@ -27,6 +40,16 @@ export class TransactionResponse {
     example: 'johndoe@gmail.com',
   })
   customer_email: string;
+
+  @ApiProperty({
+    example: 34567000,
+  })
+  total_price: number;
+
+  @ApiProperty({
+    enum: ['PENDING_PAYMENT', 'PAID', 'CANCELED', 'SHIPPING', 'DELIVERED'],
+  })
+  status: TransactionStatus;
 
   @ApiProperty({
     example: '721f9f49-a83a-4ec1-8ebd-e1a21b5e75f8',
@@ -65,7 +88,7 @@ export class TransactionResponse {
       oneOf: [{ $ref: getSchemaPath(TransactionItemResponse) }],
     },
   })
-  transaction_item?: TransactionItemResponse;
+  transaction_item?: TransactionItemResponse[];
 
   @ApiProperty({
     example: '2022-01-01T00:00:00.000Z',
@@ -121,4 +144,21 @@ export class CreateTransactionRequest {
     example: 10000,
   })
   shipping_cost: number;
+}
+
+export class UpdateTransactionRequest {
+  user_id: string;
+
+  @ApiProperty({
+    example: 'PAID',
+  })
+  status: TransactionStatus;
+
+  id: string;
+}
+
+export class FilterTransactionRequest {
+  status?: TransactionStatus;
+  page: number;
+  size: number;
 }

@@ -45,7 +45,7 @@ export class Paging {
     example: 10,
     type: Number,
   })
-  count_item_in_page: number;
+  count_item: number;
 }
 
 export class BadRequestResponse {

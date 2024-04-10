@@ -1,10 +1,19 @@
-import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
+import { WebResponse } from './../model/web.model';
+import {
+  ForbiddenException,
+  HttpException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrismaService } from 'src/common/prisma.service';
 import { ValidationService } from 'src/common/validation.service';
 import {
   CreateTransactionRequest,
+  FilterTransactionRequest,
   TransactionResponse,
+  TransactionStatus,
 } from 'src/model/transaction.model';
 import { ProductService } from 'src/product/product.service';
 import { UserService } from 'src/user/user.service';
@@ -13,7 +22,10 @@ import { TransactionValidation } from './transaction.validation';
 import { randomUUID } from 'crypto';
 import { AddressService } from 'src/address/address.service';
 import { TransactionItemsService } from 'src/transaction-items/transaction-items.service';
-
+import { TransactionMidtransPayload } from 'src/model/midtrans.model';
+import snap from 'src/common/midtrans.client';
+import { Address, Transaction, TransactionsItem } from '@prisma/client';
+import * as crypto from 'crypto';
 @Injectable()
 export class TransactionService {
   constructor(
@@ -67,10 +79,10 @@ export class TransactionService {
         product.quantity = productFromRequest.quantity;
       }
     });
-    const authString = btoa(`${process.env.MIDTRANS_SERVER_KEY}:`);
+
     // Calculate transaction details
     const transaction_id = `TRX-${randomUUID()}`;
-    const payload = {
+    const payload: TransactionMidtransPayload = {
       transaction_details: {
         order_id: transaction_id,
         gross_amount: 0,
@@ -153,7 +165,7 @@ export class TransactionService {
       }
     });
 
-    const shippingCost = createRequest.shipping_cost; // Biaya pengiriman (contoh: $10)
+    const shippingCost = createRequest.shipping_cost; // Biaya pengiriman
     const shippingItemTotal = shippingCost; // Hanya satu item shipping dengan harga biaya pengiriman
 
     payload.item_details.push({
@@ -170,48 +182,337 @@ export class TransactionService {
     payload.transaction_details.gross_amount = grossAmount;
     console.log(payload);
 
-    const response = await fetch(
-      `${process.env.MIDTRANS_APP_URL}/snap/v1/transactions`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Basic ${authString}`,
-        },
-        body: JSON.stringify(payload),
-      },
-    );
+    try {
+      const data = await snap.createTransaction(payload);
 
-    const data = await response.json();
-    console.log(data);
-    if (response.status !== 201) {
+      const newTransaction = await this.prismaService.transaction.create({
+        data: {
+          id: transaction_id,
+          user_id: user.id,
+          address_id: address.id,
+          total_price: grossAmount,
+          status: 'PENDING_PAYMENT',
+          customer_email: user.email,
+          customer_name: address.name,
+          courier: createRequest.courier,
+          snap_token: data.token,
+          snap_redirect_url: data.redirect_url,
+          shipping_cost: shippingCost,
+        },
+        include: {
+          address: true,
+          transactions_items: {
+            where: {
+              transaction_id: transaction_id,
+            },
+            include: {
+              products: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  images: true,
+                  variant: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const newTransactionItem =
+        await this.transactionItemService.createTransactionItems(
+          payload.item_details,
+          newTransaction.id,
+        );
+
+      console.log(newTransaction);
+      console.log(newTransactionItem);
+      const newTransactionItems =
+        await this.transactionItemService.getTransactionItemsByTransactionId(
+          transaction_id,
+        );
+      // Mengembalikan nilai dari fungsi async
+      return this.toTransactionResponse(
+        newTransaction,
+        newTransaction.address,
+        newTransactionItems,
+      );
+    } catch (err) {
+      console.error(err);
       throw new HttpException('Failed to create transaction', 500);
     }
-    const newTransaction = await this.prismaService.transaction.create({
-      data: {
+  }
+  async getTransactionByIdWithUserId(
+    transaction_id: string,
+    userId?: string,
+  ): Promise<TransactionResponse> {
+    const transaction = await this.prismaService.transaction.findUnique({
+      where: {
         id: transaction_id,
-        user_id: user.id,
-        address_id: address.id,
-        total_price: grossAmount,
-        status: 'PENDING_PAYMENT',
-        customer_email: user.email,
-        customer_name: address.name,
-        courier: createRequest.courier,
-        snap_token: data.token,
-        snap_redirect_url: data.redirect_url,
-        shipping_cost: shippingCost,
+        user_id: userId,
+      },
+      include: {
+        address: true,
+        transactions_items: {
+          include: {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                images: true,
+                variant: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (transaction.user_id !== userId) {
+      throw new ForbiddenException(
+        'You are not authorized to access this transaction',
+      );
+    }
+    const transactionItems =
+      await this.transactionItemService.getTransactionItemsByTransactionId(
+        transaction.id,
+      );
+    return this.toTransactionResponse(
+      transaction,
+      transaction.address,
+      transactionItems,
+    );
+  }
+
+  async getTransactionById(
+    transaction_id: string,
+  ): Promise<TransactionResponse> {
+    const transaction = await this.prismaService.transaction.findUnique({
+      where: {
+        id: transaction_id,
+      },
+      include: {
+        address: true,
+        transactions_items: {
+          include: {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                images: true,
+                variant: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    return this.toTransactionResponse(transaction);
+  }
+
+  async PaymentNotification(payload: any): Promise<TransactionResponse> {
+    const transaction = await this.getTransactionById(payload.order_id);
+
+    if (transaction) {
+      const response = await this.updateStatusBasedOnMidtransResponse(
+        transaction.id,
+        payload,
+      );
+
+      return response;
+    }
+  }
+
+  async getTransactionByUserId(
+    user_id: string,
+    request: FilterTransactionRequest,
+  ): Promise<WebResponse<TransactionResponse[]>> {
+    const filterRequest: FilterTransactionRequest =
+      this.validationService.validate(TransactionValidation.Filter, request);
+
+    const skip = (filterRequest.page - 1) * filterRequest.size;
+
+    const transactions = await this.prismaService.transaction.findMany({
+      where: {
+        user_id,
+        AND: {
+          status: filterRequest.status,
+        },
+      },
+      include: {
+        address: true,
+        transactions_items: {
+          include: {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                images: true,
+                variant: true,
+              },
+            },
+          },
+        },
+      },
+      take: filterRequest.size,
+      skip: skip,
+    });
+
+    const total = await this.prismaService.transaction.count({
+      where: {
+        user_id,
+        AND: {
+          status: filterRequest.status,
+        },
       },
     });
 
-    const newTransactioItem =
-      await this.transactionItemService.createTransactionItems(
-        payload.item_details,
-        newTransaction.id,
-      );
+    return {
+      status: true,
+      message: 'Filter Transaction Success',
+      data: transactions.map((transaction) =>
+        this.toTransactionResponse(transaction),
+      ),
+      paging: {
+        count_item: total,
+        current_page: filterRequest.page,
+        size: filterRequest.size,
+        total_page: Math.ceil(total / filterRequest.size),
+      },
+    };
+  }
 
-    console.log(newTransaction);
-    console.log(newTransactioItem);
-    return null;
+  async updateStatusBasedOnMidtransResponse(
+    transaction_id: string,
+    data: any,
+  ): Promise<any> {
+    const hash = crypto
+      .createHash('sha512')
+      .update(
+        `${transaction_id}${data.status_code}${data.gross_amount}${process.env.MIDTRANS_SERVER_KEY}`,
+      )
+      .digest('hex');
+
+    if (data.signature_key !== hash) {
+      throw new HttpException('Invalid signature key', 400);
+    }
+
+    let responseData: any = null;
+    const transactionStatus: string = data.transaction_status;
+    const fraudStatus: string = data.fraud_status;
+
+    if (transactionStatus == 'capture') {
+      if (fraudStatus == 'accept') {
+        // TODO set transaction status on your database to 'success'
+        // and response with 200 OK
+
+        const transaction = await this.updateTransactionStatus({
+          transaction_id,
+          statusTransaction: TransactionStatus.PAID,
+          payment_method: data.payment_type,
+        });
+
+        responseData = transaction;
+      }
+    } else if (transactionStatus == 'settlement') {
+      // TODO set transaction status on your database to 'success'
+      // and response with 200 OK
+
+      const transaction = await this.updateTransactionStatus({
+        transaction_id,
+        statusTransaction: TransactionStatus.PAID,
+        payment_method: data.payment_type,
+      });
+
+      responseData = transaction;
+    } else if (
+      transactionStatus == 'cancel' ||
+      transactionStatus == 'deny' ||
+      transactionStatus == 'expire'
+    ) {
+      // TODO set transaction status on your database to 'failure'
+      // and response with 200 OK
+      const transaction = await this.updateTransactionStatus({
+        transaction_id,
+        statusTransaction: TransactionStatus.CANCELED,
+        payment_method: data.payment_type,
+      });
+
+      responseData = transaction;
+    } else if (transactionStatus == 'pending') {
+      // TODO set transaction status on your database to 'pending' / waiting payment
+      // and response with 200 OK
+      const transaction = await this.updateTransactionStatus({
+        transaction_id,
+        statusTransaction: TransactionStatus.PENDING_PAYMENT,
+        payment_method: data.payment_type,
+      });
+
+      responseData = transaction;
+    }
+
+    return responseData;
+  }
+
+  async updateTransactionStatus({
+    transaction_id,
+    statusTransaction,
+    payment_method,
+  }: {
+    transaction_id: string;
+    statusTransaction: TransactionStatus;
+    payment_method?: string;
+  }): Promise<any> {
+    try {
+      const updatedTransaction = await this.prismaService.transaction.update({
+        where: {
+          id: transaction_id,
+        },
+        data: {
+          status: statusTransaction,
+          payment_method,
+        },
+      });
+
+      return updatedTransaction;
+    } catch (error) {
+      // Tangani kesalahan (error) jika terjadi
+      console.error(
+        `Failed to update transaction status for ID ${transaction_id}:`,
+        error,
+      );
+      throw new Error(
+        `Failed to update transaction status for ID ${transaction_id}`,
+      );
+    }
+  }
+
+  toTransactionResponse(
+    data: Transaction,
+    address?: Address,
+    transactionItem?: TransactionsItem[],
+  ): TransactionResponse {
+    return {
+      id: data.id,
+      user_id: data.user_id,
+      address_id: data.address_id,
+      address: address,
+      total_price: data.total_price,
+      status: data.status as TransactionStatus,
+      customer_email: data.customer_email,
+      customer_name: data.customer_name,
+      courier: data.courier,
+      payment_method: data.payment_method,
+      shipping_method: data.shipping_method,
+      transaction_item: transactionItem,
+      snap_token: data.snap_token,
+      snap_redirect_url: data.snap_redirect_url,
+      shipping_cost: data.shipping_cost,
+      updated_at: data.updated_at,
+      created_at: data.created_at,
+    };
   }
 }

@@ -143,6 +143,7 @@ model TransactionsItem {
   transactions   Transaction @relation(fields: [transaction_id], references: [id], onUpdate: Restrict)
   products       Product     @relation(fields: [product_id], references: [id], onUpdate: Restrict)
   variant        Variant?    @relation(fields: [variant_id], references: [id])
+  Review         Review[]
 
   @@index([product_id], map: "product_id")
   @@index([transaction_id], map: "transaction_id")
@@ -206,15 +207,17 @@ model Image {
 }
 
 model Review {
-  id         String   @id @default(uuid())
-  product_id String
-  user_id    String
-  rating     Int
-  message    String?  @db.Text
-  created_at DateTime @default(now()) @db.Timestamp(0)
-  updated_at DateTime @default(now()) @db.Timestamp(0)
-  Product    Product  @relation(fields: [product_id], references: [id])
-  User       User     @relation(fields: [user_id], references: [id])
+  id                   String           @id @default(uuid())
+  product_id           String
+  user_id              String
+  transactions_item_id String
+  rating               Int
+  message              String?          @db.Text
+  created_at           DateTime         @default(now()) @db.Timestamp(0)
+  updated_at           DateTime         @default(now()) @db.Timestamp(0)
+  Product              Product          @relation(fields: [product_id], references: [id])
+  User                 User             @relation(fields: [user_id], references: [id])
+  TransactionItem      TransactionsItem @relation(fields: [transactions_item_id], references: [id])
 
   @@index([product_id])
   @@index([user_id])
@@ -251,6 +254,8 @@ enum transactions_status {
   PENDING_PAYMENT
   PAID
   CANCELED
+  SHIPPING
+  DELIVERED
 }
 
 enum status_type {
