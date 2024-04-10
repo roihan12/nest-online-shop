@@ -1,3 +1,4 @@
+import { UpdateShoppingCartRequest } from './../model/shopping-cart.model';
 import {
   Body,
   Controller,
@@ -7,6 +8,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -23,6 +25,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  ApiArrayResponse,
   ApiSucessResponse,
   BadRequestResponse,
   ForbiddenResponse,
@@ -32,17 +35,17 @@ import {
 } from '../model/web.model';
 import { AccessTokenGuard } from '../auth/guard/accessToken.guard';
 import { GetCurrentUser } from '../auth/decorator/get-current-user.decorator';
-import { WishlistService } from './wishlist.service';
+import { ShoppingCartService } from './shopping-cart.service';
 import {
-  CreateWishlistRequest,
-  DeleteWishlistRequest,
-  WishlistResponse,
-} from 'src/model/wishlist.model';
+  CreateShoppingCartRequest,
+  DeleteShoppingCartRequest,
+  ShoppingCartResponse,
+} from 'src/model/shopping-cart.model';
 
-@ApiTags('Wishlist')
-@Controller('wishlist')
-export class WishlistController {
-  constructor(private wishlistService: WishlistService) {}
+@ApiTags('Shopping-Cart')
+@Controller('shopping-cart')
+export class ShoppingCartController {
+  constructor(private shoppingCartService: ShoppingCartService) {}
 
   @Get('/')
   @ApiBearerAuth()
@@ -53,20 +56,20 @@ export class WishlistController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiSucessResponse(WishlistResponse)
+  @ApiArrayResponse(ShoppingCartResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiOperation({ summary: 'Get all wishlist user' })
-  async getMyWishlist(
+  @ApiOperation({ summary: 'Get all shopping-cart user' })
+  async getMyShoppingCart(
     @GetCurrentUserId() userId: string,
-  ): Promise<WebResponse<WishlistResponse[]>> {
-    const response = await this.wishlistService.listWishlist(userId);
+  ): Promise<WebResponse<ShoppingCartResponse[]>> {
+    const response = await this.shoppingCartService.listCart(userId);
     return {
       status: true,
-      message: 'Get list wishlist Success',
+      message: 'Get list shopping cart Success',
       data: response,
     };
   }
@@ -93,19 +96,19 @@ export class WishlistController {
     description: 'Forbidden response',
     type: ForbiddenResponse,
   })
-  @ApiOperation({ summary: 'Delete item wishlist' })
-  async DeleteItemWishlist(
+  @ApiOperation({ summary: 'Delete item shopping cart' })
+  async DeleteItemShoppingCart(
     @GetCurrentUserId() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<boolean>> {
-    const request: DeleteWishlistRequest = {
+    const request: DeleteShoppingCartRequest = {
       id,
       user_id: userId,
     };
-    await this.wishlistService.remove(request);
+    await this.shoppingCartService.remove(request);
     return {
       status: true,
-      message: 'Delete wishlist user success',
+      message: 'Delete item shopping cart user success',
       data: true,
     };
   }
@@ -134,21 +137,66 @@ export class WishlistController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiSucessResponse(WishlistResponse)
+  @ApiSucessResponse(ShoppingCartResponse)
   @ApiBody({
-    type: CreateWishlistRequest,
-    description: 'Request body to create new wishlist user',
+    type: CreateShoppingCartRequest,
+    description: 'Request body to create add item to shopping cart user',
   })
-  @ApiOperation({ summary: 'create new wishlist user' })
-  async createWishlist(
+  @ApiOperation({ summary: 'create item shopping cart user' })
+  async createItemShoppingCart(
     @GetCurrentUser('userId') userId: string,
-    @Body() request: CreateWishlistRequest,
-  ): Promise<WebResponse<WishlistResponse>> {
+    @Body() request: CreateShoppingCartRequest,
+  ): Promise<WebResponse<ShoppingCartResponse>> {
     request.user_id = userId;
-    const response = await this.wishlistService.addToWishlist(request);
+    const response = await this.shoppingCartService.addToCart(request);
     return {
       status: true,
-      message: 'Create user wishlist success',
+      message: 'Create item shopping cart success',
+      data: response,
+    };
+  }
+
+  @Patch('/:id')
+  @UseGuards(AccessTokenGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiUnauthorizedResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: UnauthorizedResponse,
+  })
+  @ApiForbiddenResponse({
+    status: 403,
+    description: 'Forbidden resource',
+    type: ForbiddenResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiSucessResponse(ShoppingCartResponse)
+  @ApiBody({
+    type: UpdateShoppingCartRequest,
+    description: 'Request body to update item shopping cart user',
+  })
+  @ApiOperation({ summary: 'update item shopping cart user' })
+  async updateItemShoppingCart(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetCurrentUser('userId') userId: string,
+    @Body() request: UpdateShoppingCartRequest,
+  ): Promise<WebResponse<ShoppingCartResponse>> {
+    request.id = id;
+    request.user_id = userId;
+    const response = await this.shoppingCartService.updateCart(request);
+    return {
+      status: true,
+      message: 'Update item shopping cart success',
       data: response,
     };
   }
@@ -177,7 +225,7 @@ export class WishlistController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiSucessResponse(WishlistResponse)
+  @ApiSucessResponse(ShoppingCartResponse)
   @ApiBody({
     type: Array<string>,
     description: 'Request body to delete many wishlist user',
@@ -185,16 +233,16 @@ export class WishlistController {
   @ApiOperation({ summary: 'Delete many wishlist user' })
   async deleteMany(
     @GetCurrentUser('userId') userId: string,
-    @Body('wishlistId', ParseUUIDPipe) wishlistId: string[],
+    @Body('cartId', ParseUUIDPipe) cartId: string[],
   ): Promise<WebResponse<boolean>> {
-    if (!wishlistId || wishlistId.length === 0) {
-      throw new Error('No Wishlist ID provided');
+    if (!cartId || cartId.length === 0) {
+      throw new Error('No cart ID provided');
     }
-    await this.wishlistService.removeMany(userId, wishlistId);
+    await this.shoppingCartService.removeMany(userId, cartId);
 
     return {
       status: true,
-      message: 'Delete many wishlist user success',
+      message: 'Delete many shopping cart user success',
       data: true,
     };
   }

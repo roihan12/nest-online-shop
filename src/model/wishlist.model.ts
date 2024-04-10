@@ -18,7 +18,7 @@ export class WishlistResponse {
       oneOf: [{ $ref: getSchemaPath(ProductResponse) }],
     },
   })
-  product?: ProductResponse[];
+  product?: ProductResponse;
 
   @ApiProperty({
     example: '2022-01-01T00:00:00.000Z',
@@ -37,9 +37,6 @@ export class DeleteWishlistRequest {
   })
   id: string;
 
-  @ApiProperty({
-    example: '0d4f147c-eb4c-4f81-9e60-0bd0381a12e3',
-  })
   user_id: string;
 }
 
@@ -54,8 +51,5 @@ export class CreateWishlistRequest {
   })
   product_id: string;
 
-  @ApiProperty({
-    example: '0d4f147c-eb4c-4f81-9e60-0bd0381a12e3',
-  })
   user_id: string;
 }

@@ -8,5 +8,6 @@ import { ProductModule } from 'src/product/product.module';
   imports: [UploadModule, ProductModule],
   providers: [VariantService],
   controllers: [VariantController],
+  exports: [VariantService],
 })
 export class VariantModule {}

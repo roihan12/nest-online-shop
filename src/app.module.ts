@@ -20,6 +20,7 @@ import { ShoppingCartModule } from './shopping-cart/shopping-cart.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { TransactionItemsModule } from './transaction-items/transaction-items.module';
+import { RajaOngkirModule } from './raja-ongkir/raja-ongkir.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { TransactionItemsModule } from './transaction-items/transaction-items.mo
     WishlistModule,
     TransactionModule,
     TransactionItemsModule,
+    RajaOngkirModule,
   ],
   controllers: [],
   providers: [

@@ -16,7 +16,7 @@ export class ProductValidation {
     weight: z.number().positive(),
     is_featured: z.boolean(),
     is_variant: z.boolean(),
-    variants: z.array(Variant),
+    variants: z.array(Variant).optional(),
   });
 
   static readonly Update: ZodType = z.object({

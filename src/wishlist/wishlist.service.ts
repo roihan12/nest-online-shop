@@ -106,7 +106,7 @@ export class WishlistService {
     );
   }
 
-  toWishlistResponse(wishlist: Wishlist, product: Product[]): WishlistResponse {
+  toWishlistResponse(wishlist: Wishlist, product: Product): WishlistResponse {
     return {
       id: wishlist.id,
       user_id: wishlist.user_id,

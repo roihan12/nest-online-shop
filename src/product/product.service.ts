@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrismaService } from 'src/common/prisma.service';
 import { ValidationService } from 'src/common/validation.service';
@@ -15,6 +15,8 @@ import { slugify, toProductResponse } from './product.mapping';
 import { CategoryService } from 'src/category/category.service';
 import { BrandService } from 'src/brand/brand.service';
 import { WebResponse } from 'src/model/web.model';
+import { Product } from '@prisma/client';
+import { ShoppingCartResponse } from 'src/model/shopping-cart.model';
 
 @Injectable()
 export class ProductService {
@@ -307,5 +309,21 @@ export class ProductService {
         total_page: Math.ceil(total / searchRequest.size),
       },
     };
+  }
+
+  async getProductsByIds(products: ShoppingCartResponse[]): Promise<Product[]> {
+    const findProducts = await this.prismaService.product.findMany({
+      where: {
+        id: {
+          in: products.map((product) => product.product_id),
+        },
+      },
+    });
+
+    if (!findProducts) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return findProducts;
   }
 }

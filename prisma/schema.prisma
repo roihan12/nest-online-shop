@@ -45,13 +45,13 @@ model ShoppingCart {
   id         String   @id @default(uuid())
   user_id    String
   product_id String
-  variant_id String
+  variant_id String?
   qty        Int
   created_at DateTime @default(now()) @db.Timestamp(0)
   updated_at DateTime @default(now()) @db.Timestamp(0)
   product    Product  @relation(fields: [product_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
-  variant    Variant  @relation(fields: [variant_id], references: [id])
+  variant    Variant? @relation(fields: [variant_id], references: [id])
 
   @@index([user_id])
   @@index([product_id])
@@ -81,8 +81,8 @@ model Product {
   reviews            Review[]
   shopping_cart      ShoppingCart[]
   transactions_items TransactionsItem[]
-  wishlist           Wishlist[]         @relation("WishlistToProduct")
   variant            Variant[]
+  wishlist           Wishlist[]
 
   @@index([category_id])
   @@index([brand_id])
@@ -90,17 +90,17 @@ model Product {
 }
 
 model Wishlist {
-  id         String    @id @default(uuid())
+  id         String   @id @default(uuid())
   product_id String
   user_id    String
-  created_at DateTime  @default(now()) @db.Timestamp(0)
-  updated_at DateTime  @default(now()) @db.Timestamp(0)
-  Product    Product[] @relation("WishlistToProduct")
-  User       User      @relation(fields: [user_id], references: [id])
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  User       User     @relation(fields: [user_id], references: [id])
+  Product    Product  @relation(fields: [product_id], references: [id])
 
   @@index([user_id])
   @@index([product_id])
-  @@map("whislists")
+  @@map("wishlist")
 }
 
 model Transaction {
@@ -116,7 +116,7 @@ model Transaction {
   payment_method     String?             @db.VarChar(110)
   courier            String?             @db.VarChar(255)
   shipping_method    String?
-  shipping_cost      String?
+  shipping_cost      Int?
   created_at         DateTime            @default(now()) @db.Timestamp(0)
   updated_at         DateTime            @default(now()) @db.Timestamp(0)
   address            Address             @relation(fields: [address_id], references: [id])
@@ -132,14 +132,17 @@ model TransactionsItem {
   id             String      @id @default(uuid())
   transaction_id String      @db.VarChar(110)
   product_id     String      @db.VarChar(110)
+  variant_id     String?     @db.VarChar(110)
   product_name   String      @db.VarChar(255)
+  variant_name   String?     @db.VarChar(255)
   price          Int
   quantity       Int
   total_price    Int
   created_at     DateTime    @default(now()) @db.Timestamp(0)
   updated_at     DateTime    @default(now()) @db.Timestamp(0)
-  transactions   Transaction @relation(fields: [transaction_id], references: [id], onUpdate: Restrict, map: "transactions_items_ibfk_1")
-  products       Product     @relation(fields: [product_id], references: [id], onUpdate: Restrict, map: "transactions_items_ibfk_2")
+  transactions   Transaction @relation(fields: [transaction_id], references: [id], onUpdate: Restrict)
+  products       Product     @relation(fields: [product_id], references: [id], onUpdate: Restrict)
+  variant        Variant?    @relation(fields: [variant_id], references: [id])
 
   @@index([product_id], map: "product_id")
   @@index([transaction_id], map: "transaction_id")
@@ -173,18 +176,19 @@ model Category {
 }
 
 model Variant {
-  id           String         @id @default(uuid())
-  product_id   String
-  name         String
-  value        String
-  image_url    String
-  price        Int
-  stock        Int
-  created_at   DateTime       @default(now()) @db.Timestamp(0)
-  updated_at   DateTime       @default(now()) @db.Timestamp(0)
-  products     Product        @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  status       status_type    @default(ACTIVE)
-  ShoppingCart ShoppingCart[]
+  id               String             @id @default(uuid())
+  product_id       String
+  name             String
+  value            String
+  image_url        String
+  price            Int
+  stock            Int
+  created_at       DateTime           @default(now()) @db.Timestamp(0)
+  updated_at       DateTime           @default(now()) @db.Timestamp(0)
+  products         Product            @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  status           status_type        @default(ACTIVE)
+  ShoppingCart     ShoppingCart[]
+  TransactionsItem TransactionsItem[]
 
   @@map("variants")
 }

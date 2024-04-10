@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { TransactionItemsService } from './transaction-items.service';
 
-@Module({})
+@Module({
+  providers: [TransactionItemsService],
+  exports: [TransactionItemsService],
+})
 export class TransactionItemsModule {}

@@ -20,6 +20,7 @@ import { Logger } from 'winston';
 import { VariantValidation } from './variant.validation';
 import { toVariantResponse } from './variant.mapping';
 import { Variant } from '@prisma/client';
+import { ShoppingCartResponse } from 'src/model/shopping-cart.model';
 
 @Injectable()
 export class VariantService {
@@ -172,5 +173,27 @@ export class VariantService {
     });
 
     return variants.map((variant) => toVariantResponse(variant));
+  }
+
+  async getProductsAndVariantByIds(
+    products: ShoppingCartResponse[],
+  ): Promise<Variant[]> {
+    // Mengumpulkan daftar product_id dari produk
+    const productIds = products.map((product) => product.product_id);
+
+    // Mengambil varian berdasarkan product_id dari produk
+    const variants = await this.prismaService.variant.findMany({
+      where: {
+        product_id: {
+          in: productIds,
+        },
+      },
+    });
+
+    if (!variants) {
+      throw new HttpException('Variants not found', 404);
+    }
+
+    return variants;
   }
 }
