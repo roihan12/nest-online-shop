@@ -109,10 +109,18 @@ export class ProductService {
       include: {
         variant: true,
         images: true,
+        reviews: {
+          take: 5,
+        },
       },
     });
 
-    return toProductResponse(product, product.images, product.variant);
+    return toProductResponse(
+      product,
+      product.images,
+      product.variant,
+      product.reviews,
+    );
   }
 
   async deleteProduct(id: string): Promise<void> {
@@ -181,134 +189,92 @@ export class ProductService {
   ): Promise<WebResponse<ProductResponse[]>> {
     const searchRequest: SearchProductsRequest =
       this.validationService.validate(ProductValidation.SEARCH, request);
+    const { brand_id, category_id, name, pmin, pmax, sort, page, size } =
+      searchRequest;
 
-    const filters = [];
-
-    if (
-      searchRequest.brand_id &&
-      searchRequest.category_id &&
-      searchRequest.name &&
-      searchRequest.pmin &&
-      searchRequest.pmax &&
-      searchRequest.sort === 'Price (Low to High)'
-    ) {
-      // add name filter
-      filters.push({
-        OR: [
-          {
-            name: {
-              contains: searchRequest.name,
-            },
-          },
-          {
-            description: {
-              contains: searchRequest.name,
-            },
-          },
-        ],
-        brand_id: {
-          equals: searchRequest.brand_id,
-        },
-        category_id: {
-          equals: searchRequest.category_id,
-        },
-        price: {
-          lte: searchRequest.pmin,
-          gte: searchRequest.pmax,
-        },
-        orderBy: {
-          price: 'asc',
-        },
-      });
-    }
-
-    // Tambahkan kondisi berdasarkan properti yang tersedia dalam request
-    if (searchRequest.brand_id) {
-      filters.push({
-        brand_id: {
-          equals: searchRequest.brand_id,
-        },
-      });
-    }
-
-    if (searchRequest.category_id) {
-      filters.push({
-        category_id: {
-          equals: searchRequest.category_id,
-        },
-      });
-    }
-
-    if (searchRequest.name) {
-      // Tambahkan filter berdasarkan nama atau deskripsi
-      filters.push({
-        OR: [
-          {
-            name: {
-              contains: searchRequest.name,
-            },
-          },
-          {
-            description: {
-              contains: searchRequest.name,
-            },
-          },
-        ],
-      });
-    }
-
-    if (searchRequest.pmin && searchRequest.pmax) {
-      filters.push({
-        price: {
-          lte: searchRequest.pmax,
-          gte: searchRequest.pmin,
-        },
-      });
-    }
-
-    // Tambahkan pengaturan orderBy berdasarkan sort jika sort tersedia
-    if (searchRequest.sort === 'Price (Low to High)') {
-      filters.push({
-        orderBy: {
-          price: 'asc',
-        },
-      });
-    } else if (searchRequest.sort === 'Price (High to Low)') {
-      filters.push({
-        orderBy: {
-          price: 'desc',
-        },
-      });
-    }
-    const skip = (searchRequest.page - 1) * searchRequest.size;
-
-    const products = await this.prismaService.product.findMany({
-      where: {
-        status: 'ACTIVE',
-        AND: filters.length > 0 ? filters : undefined,
-      },
-      take: searchRequest.size,
-      skip: skip,
-    });
-
-    const total = await this.prismaService.product.count({
-      where: {
-        status: 'ACTIVE',
-        AND: filters.length > 0 ? filters : undefined,
-      },
-    });
-
-    return {
-      status: true,
-      message: 'Search Success',
-      data: products.map((product) => toProductResponse(product)),
-      paging: {
-        count_item: total,
-        current_page: searchRequest.page,
-        size: searchRequest.size,
-        total_page: Math.ceil(total / searchRequest.size),
-      },
+    const where: any = {
+      status: 'ACTIVE',
     };
+
+    if (brand_id) {
+      where.brand_id = { equals: brand_id };
+    }
+
+    if (category_id) {
+      where.category_id = { equals: category_id };
+    }
+
+    if (name) {
+      where.OR = [
+        { name: { contains: name } },
+        { description: { contains: name } },
+      ];
+    }
+
+    if (pmin && pmax) {
+      where.price = {
+        lte: pmax,
+        gte: pmin,
+      };
+    }
+
+    const orderBy: any[] = [];
+    if (sort === 'Price (Low to High)') {
+      orderBy.push({ price: 'asc' });
+    } else if (sort === 'Price (High to Low)') {
+      orderBy.push({ price: 'desc' });
+    } else if (sort === 'Best Selling') {
+      orderBy.push({ stock_sold: 'desc' }); // Sort by highest stock_sold
+    } else if (sort === 'asc') {
+      orderBy.push({ created_at: 'asc' });
+    } else if (sort === 'desc') {
+      orderBy.push({ created_at: 'desc' });
+    }
+
+    const skip = (page - 1) * size;
+
+    try {
+      const products = await this.prismaService.product.findMany({
+        where,
+        orderBy,
+        include: {
+          variant: true,
+          images: true,
+        },
+        take: size,
+        skip,
+      });
+
+      const total = await this.prismaService.product.count({ where });
+
+      return {
+        status: true,
+        message: 'Search Success',
+        data: products.map((product) =>
+          toProductResponse(product, product.images, product.variant),
+        ),
+        paging: {
+          count_item: total,
+          current_page: page,
+          size,
+          total_page: Math.ceil(total / size),
+        },
+      };
+    } catch (error) {
+      // Handle error appropriately
+      this.logger.error('Error searching products:', error);
+      return {
+        status: false,
+        message: 'Search failed',
+        data: [],
+        paging: {
+          count_item: 0,
+          current_page: page,
+          size,
+          total_page: 0,
+        },
+      };
+    }
   }
 
   async getProductsByIds(products: ShoppingCartResponse[]): Promise<Product[]> {

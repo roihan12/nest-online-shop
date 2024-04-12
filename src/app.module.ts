@@ -21,9 +21,42 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { TransactionItemsModule } from './transaction-items/transaction-items.module';
 import { RajaOngkirModule } from './raja-ongkir/raja-ongkir.module';
+import { ReviewModule } from './review/review.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { ConfigModule } from '@nestjs/config';
+import * as redisStore from 'cache-manager-redis-store';
+import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import { Redis } from 'ioredis';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT,
+      username: process.env.REDIS_USERNAME,
+      password: process.env.REDIS_PASSWORD,
+      no_ready_check: true,
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ limit: 100, ttl: seconds(60) }],
+
+      // default config (host = localhost, port = 6379)
+      storage: new ThrottlerStorageRedisService(
+        new Redis({
+          host: process.env.REDIS_HOST,
+          port: Number(process.env.REDIS_PORT),
+          username: process.env.REDIS_USERNAME,
+          password: process.env.REDIS_PASSWORD,
+        }),
+      ),
+    }),
     CommonModule,
     AuthModule,
     EmailModule,
@@ -44,12 +77,18 @@ import { RajaOngkirModule } from './raja-ongkir/raja-ongkir.module';
     TransactionModule,
     TransactionItemsModule,
     RajaOngkirModule,
+    ReviewModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [
     {
       provide: APP_GUARD,
       useClass: AccessTokenGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

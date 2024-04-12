@@ -1,6 +1,7 @@
 import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { CreateVariantRequest, VariantResponse } from './variant.model';
 import { ImageResponse } from './image.model';
+import { ReviewResponse } from './review.model';
 
 export class ProductResponse {
   @ApiProperty({
@@ -87,6 +88,14 @@ export class ProductResponse {
     },
   })
   images?: ImageResponse[];
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      oneOf: [{ $ref: getSchemaPath(ReviewResponse) }],
+    },
+  })
+  reviews?: ReviewResponse[];
 
   @ApiProperty({
     example: '2022-01-01T00:00:00.000Z',
@@ -239,10 +248,21 @@ export class SearchProductsRequest {
   })
   pmin?: number;
   @ApiProperty({
-    enum: ['ASC', 'DESC', 'Price (Low to High)', 'Price (High to Low)'],
+    enum: [
+      'asc',
+      'desc',
+      'Price (Low to High)',
+      'Price (High to Low)',
+      'Best Selling',
+    ],
     required: false,
   })
-  sort?: 'ASC' | 'DESC' | 'Price (Low to High)' | 'Price (High to Low)';
+  sort?:
+    | 'asc'
+    | 'desc'
+    | 'Price (Low to High)'
+    | 'Price (High to Low)'
+    | 'Best Selling';
   @ApiProperty({
     example: 1,
     type: Number,

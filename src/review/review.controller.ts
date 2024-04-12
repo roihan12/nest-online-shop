@@ -1,4 +1,3 @@
-import { UpdateShoppingCartRequest } from './../model/shopping-cart.model';
 import {
   Body,
   Controller,
@@ -7,9 +6,11 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -36,21 +37,22 @@ import {
 } from '../model/web.model';
 import { AccessTokenGuard } from '../auth/guard/accessToken.guard';
 import { GetCurrentUser } from '../auth/decorator/get-current-user.decorator';
-import { ShoppingCartService } from './shopping-cart.service';
+import { ReviewService } from './review.service';
 import {
-  CreateShoppingCartRequest,
-  DeleteShoppingCartRequest,
-  ShoppingCartResponse,
-} from 'src/model/shopping-cart.model';
+  CreateReviewRequest,
+  DeleteReviewRequest,
+  GetReviewOfProduct,
+  ReviewResponse,
+  UpdateReviewRequest,
+} from 'src/model/review.model';
+import { Public } from 'src/auth/decorator/public..decorator';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
-@ApiTags('Shopping-Cart')
-@Controller('shopping-cart')
-export class ShoppingCartController {
-  constructor(private shoppingCartService: ShoppingCartService) {}
+@ApiTags('Reviews')
+@Controller('reviews')
+export class ReviewController {
+  constructor(private reviewService: ReviewService) {}
 
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(60)
   @Get('/')
   @ApiBearerAuth()
   @UseGuards(AccessTokenGuard)
@@ -60,20 +62,20 @@ export class ShoppingCartController {
     description: 'Unauthorized',
     type: UnauthorizedResponse,
   })
-  @ApiArrayResponse(ShoppingCartResponse)
+  @ApiArrayResponse(ReviewResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiOperation({ summary: 'Get all shopping-cart user' })
-  async getMyShoppingCart(
+  @ApiOperation({ summary: 'Get all review user' })
+  async getMyAllReview(
     @GetCurrentUserId() userId: string,
-  ): Promise<WebResponse<ShoppingCartResponse[]>> {
-    const response = await this.shoppingCartService.listCart(userId);
+  ): Promise<WebResponse<ReviewResponse[]>> {
+    const response = await this.reviewService.getReviewByUserId(userId);
     return {
       status: true,
-      message: 'Get list shopping cart Success',
+      message: 'Get list review user Success',
       data: response,
     };
   }
@@ -88,7 +90,7 @@ export class ShoppingCartController {
     type: UnauthorizedResponse,
   })
   @ApiOkResponse({
-    description: 'Success response delete wishlist',
+    description: 'Success response delete review',
     type: WebResponse,
   })
   @ApiInternalServerErrorResponse({
@@ -100,19 +102,19 @@ export class ShoppingCartController {
     description: 'Forbidden response',
     type: ForbiddenResponse,
   })
-  @ApiOperation({ summary: 'Delete item shopping cart' })
-  async DeleteItemShoppingCart(
+  @ApiOperation({ summary: 'Delete review' })
+  async DeleteReview(
     @GetCurrentUserId() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<WebResponse<boolean>> {
-    const request: DeleteShoppingCartRequest = {
+    const request: DeleteReviewRequest = {
       id,
       user_id: userId,
     };
-    await this.shoppingCartService.remove(request);
+    await this.reviewService.deleteReview(request);
     return {
       status: true,
-      message: 'Delete item shopping cart user success',
+      message: 'Delete review user success',
       data: true,
     };
   }
@@ -141,21 +143,21 @@ export class ShoppingCartController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiSucessResponse(ShoppingCartResponse)
+  @ApiSucessResponse(ReviewResponse)
   @ApiBody({
-    type: CreateShoppingCartRequest,
-    description: 'Request body to create add item to shopping cart user',
+    type: CreateReviewRequest,
+    description: 'Request body to create review user',
   })
-  @ApiOperation({ summary: 'create item shopping cart user' })
-  async createItemShoppingCart(
+  @ApiOperation({ summary: 'create review user' })
+  async createReview(
     @GetCurrentUser('userId') userId: string,
-    @Body() request: CreateShoppingCartRequest,
-  ): Promise<WebResponse<ShoppingCartResponse>> {
+    @Body() request: CreateReviewRequest,
+  ): Promise<WebResponse<ReviewResponse>> {
     request.user_id = userId;
-    const response = await this.shoppingCartService.addToCart(request);
+    const response = await this.reviewService.createReview(request);
     return {
       status: true,
-      message: 'Create item shopping cart success',
+      message: 'Create review success',
       data: response,
     };
   }
@@ -184,70 +186,73 @@ export class ShoppingCartController {
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiSucessResponse(ShoppingCartResponse)
+  @ApiSucessResponse(ReviewResponse)
   @ApiBody({
-    type: UpdateShoppingCartRequest,
-    description: 'Request body to update item shopping cart user',
+    type: UpdateReviewRequest,
+    description: 'Request body to update review user',
   })
-  @ApiOperation({ summary: 'update item shopping cart user' })
-  async updateItemShoppingCart(
+  @ApiOperation({ summary: 'update rwview user' })
+  async updateReview(
     @Param('id', ParseUUIDPipe) id: string,
     @GetCurrentUser('userId') userId: string,
-    @Body() request: UpdateShoppingCartRequest,
-  ): Promise<WebResponse<ShoppingCartResponse>> {
+    @Body() request: UpdateReviewRequest,
+  ): Promise<WebResponse<ReviewResponse>> {
     request.id = id;
     request.user_id = userId;
-    const response = await this.shoppingCartService.updateCart(request);
+    const response = await this.reviewService.updateReview(request);
     return {
       status: true,
-      message: 'Update item shopping cart success',
+      message: 'Update review success',
       data: response,
     };
   }
 
-  @Post('delete-many')
-  @UseGuards(AccessTokenGuard)
-  @ApiBearerAuth()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(240)
+  @Public()
+  @Get('/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiBadRequestResponse({
-    status: 400,
-    description: 'Bad Request',
-    type: BadRequestResponse,
-  })
-  @ApiUnauthorizedResponse({
-    status: 401,
-    description: 'Unauthorized',
-    type: UnauthorizedResponse,
-  })
-  @ApiForbiddenResponse({
-    status: 403,
-    description: 'Forbidden resource',
-    type: ForbiddenResponse,
-  })
+  @ApiSucessResponse(ReviewResponse)
   @ApiInternalServerErrorResponse({
     status: 500,
     description: 'Internal Server error',
     type: InternalServerErrorResponse,
   })
-  @ApiSucessResponse(ShoppingCartResponse)
-  @ApiBody({
-    type: Array<string>,
-    description: 'Request body to delete many wishlist user',
-  })
-  @ApiOperation({ summary: 'Delete many wishlist user' })
-  async deleteMany(
-    @GetCurrentUser('userId') userId: string,
-    @Body('cartId', ParseUUIDPipe) cartId: string[],
-  ): Promise<WebResponse<boolean>> {
-    if (!cartId || cartId.length === 0) {
-      throw new Error('No cart ID provided');
-    }
-    await this.shoppingCartService.removeMany(userId, cartId);
-
+  @ApiOperation({ summary: 'Get review by id' })
+  async getReviewById(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<WebResponse<ReviewResponse>> {
+    const response = await this.reviewService.getReviewById(id);
     return {
       status: true,
-      message: 'Delete many shopping cart user success',
-      data: true,
+      message: 'Get review by id success',
+      data: response,
     };
+  }
+
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(240)
+  @Public()
+  @Get('/products/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiArrayResponse(ReviewResponse)
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiOperation({ summary: 'Get all reviews of product' })
+  async reviewProduct(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('size', new ParseIntPipe({ optional: true })) size?: number,
+  ): Promise<WebResponse<ReviewResponse[]>> {
+    const request: GetReviewOfProduct = {
+      product_id: id,
+      page: page || 1,
+      size: size || 10,
+    };
+
+    return await this.reviewService.getReviewByProductId(request);
   }
 }

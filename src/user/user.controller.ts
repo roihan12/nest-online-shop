@@ -188,9 +188,6 @@ export class UserController {
     @GetCurrentUser('userId') userId: string,
     @Body() request: UpdateUserRequest,
   ): Promise<WebResponse<UserResponse>> {
-    if (request.role) {
-      delete request.role;
-    }
     const response = await this.userService.updateUser(userId, request, file);
     return {
       status: true,

@@ -1,0 +1,81 @@
+version: '3'
+
+services:
+  app:
+    container_name: 'nest-online-shop'
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PORT: ${PORT}
+      POSTGRES_HOST: postgres_db
+      REDIS_HOST: redis
+      ACCESSTOKENSECRET: ${ACCESSTOKENSECRET}
+      REFRESHTOKENSECRET: ${REFRESHTOKENSECRET}
+      REDIRECT_URL: ${REDIRECT_URL}
+      SESSION: ${SESSION}
+      MAIL_HOST: ${MAIL_HOST}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      BUCKET_NAME: ${BUCKET_NAME}
+      BUCKET_ENDPOINT: ${BUCKET_ENDPOINT}
+      BUCKET_ACCESS_KEY: ${BUCKET_ACCESS_KEY}
+      BUCKET_SECRET_KEY: ${BUCKET_SECRET_KEY}
+      RAJA_ONGKIR_API_KEY: ${RAJA_ONGKIR_API_KEY}
+      MIDTRANS_APP_URL: ${MIDTRANS_APP_URL}
+      MIDTRANS_API_URL: ${MIDTRANS_API_URL}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
+      FRONT_END_URL: ${FRONT_END_URL}
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - postgres_db
+      - redis
+    networks:
+      myapp_net:
+
+  postgres_db:
+    image: bitnami/postgresql:15
+    container_name: 'myapp_postgres_db'
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_USERNAME: ${POSTGRES_USER}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_DATABASE: ${POSTGRES_DB}
+      POSTGRESQL_TIMEZONE: 'Asia/Tashkent' # This is optional
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - 'postgres_data:/bitnami/postgresql'
+    networks:
+      myapp_net:
+  redis:
+    image: 'bitnami/redis:7.2'
+    container_name: 'myapp_redis'
+    restart: unless-stopped
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - 'redis_data:/bitnami/redis/data'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_IO_THREADS: 4
+      REDIS_IO_THREADS_DO_READS: 'yes'
+      REDIS_DISABLE_COMMANDS: FLUSHDB,FLUSHALL
+    networks:
+      myapp_net:
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  myapp_net:

@@ -1,10 +1,11 @@
-import { Image, Product, Variant } from '@prisma/client';
+import { Image, Product, Review, Variant } from '@prisma/client';
 import { ProductResponse } from 'src/model/product.model';
 
 export function toProductResponse(
   productData: Product,
   image?: Image[],
   variants?: Variant[],
+  reviews?: Review[],
 ): ProductResponse {
   return {
     id: productData.id,
@@ -21,6 +22,7 @@ export function toProductResponse(
     is_variant: productData.is_variant,
     images: image,
     variants: variants,
+    reviews: reviews,
     stock_sold: productData.stock_sold,
     created_at: productData.created_at,
     updated_at: productData.updated_at,

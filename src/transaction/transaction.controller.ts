@@ -11,6 +11,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { GetCurrentUserId } from '../auth/decorator/get-current-user-id.decorator';
 import {
@@ -21,6 +22,7 @@ import {
   ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
@@ -43,6 +45,8 @@ import {
 import { RoleGuard } from 'src/auth/guard/role.guard';
 import { Roles } from 'src/auth/decorator/role.decorator';
 import { Public } from 'src/auth/decorator/public..decorator';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+@ApiTags('Transactions')
 @Controller('transactions')
 export class TransactionController {
   constructor(private transactionService: TransactionService) {}
@@ -161,10 +165,6 @@ export class TransactionController {
   @ApiOkResponse({
     type: WebResponse,
   })
-  @ApiBody({
-    type: CreateTransactionRequest,
-    description: 'Request body to create transaction item user',
-  })
   @ApiOperation({ summary: 'Get notification transaction user' })
   async transactionNotification(
     @Body() request: any,
@@ -177,7 +177,9 @@ export class TransactionController {
     };
   }
 
-  @Get('/')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(240)
+  @Get('/users')
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
@@ -203,7 +205,7 @@ export class TransactionController {
   })
   @ApiArrayResponse(TransactionResponse)
   @ApiOperation({ summary: 'Get list all transaction user' })
-  async getListTransaction(
+  async getListTransactionUser(
     @GetCurrentUserId() userId: string,
     @Query('status') status?: TransactionStatus,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -221,6 +223,51 @@ export class TransactionController {
     );
   }
 
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(240)
+  @Get('/')
+  @UseGuards(AccessTokenGuard, RoleGuard)
+  @Roles(['ADMIN', 'OWNER'])
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    status: 400,
+    description: 'Bad Request',
+    type: BadRequestResponse,
+  })
+  @ApiUnauthorizedResponse({
+    status: 401,
+    description: 'Unauthorized',
+    type: UnauthorizedResponse,
+  })
+  @ApiForbiddenResponse({
+    status: 403,
+    description: 'Forbidden resource',
+    type: ForbiddenResponse,
+  })
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiArrayResponse(TransactionResponse)
+  @ApiOperation({ summary: 'Get list all transaction' })
+  async getListTransaction(
+    @Query('status') status?: TransactionStatus,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('size', new ParseIntPipe({ optional: true })) size?: number,
+  ): Promise<WebResponse<TransactionResponse[]>> {
+    const request: FilterTransactionRequest = {
+      status,
+      page: page || 1,
+      size: size || 10,
+    };
+
+    return await this.transactionService.getTransactionByAdmin(request);
+  }
+
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(240)
   @Get('/:id')
   @UseGuards(AccessTokenGuard)
   @ApiBearerAuth()

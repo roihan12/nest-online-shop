@@ -1,6 +1,9 @@
 import { TransactionItemResponse } from './transaction-item.model';
 import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
-import { ShoppingCartResponse } from './shopping-cart.model';
+import {
+  CreateShoppingCartRequest,
+  ShoppingCartResponse,
+} from './shopping-cart.model';
 import { AddressResponse } from './address.model';
 
 export enum TransactionStatus {
@@ -10,6 +13,7 @@ export enum TransactionStatus {
   SHIPPING = 'SHIPPING',
   DELIVERED = 'DELIVERED', // Tambahkan status barang telah diterima
 }
+
 export class TransactionResponse {
   @ApiProperty({
     example: 'bb75f39c-ca23-4045-a3c1-5516ce5af205',
@@ -135,7 +139,7 @@ export class CreateTransactionRequest {
   @ApiProperty({
     type: 'array',
     items: {
-      oneOf: [{ $ref: getSchemaPath(ShoppingCartResponse) }],
+      oneOf: [{ $ref: getSchemaPath(CreateShoppingCartRequest) }],
     },
   })
   item_details: ShoppingCartResponse[];

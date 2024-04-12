@@ -50,6 +50,7 @@ import {
   UpdateProductRequest,
 } from 'src/model/product.model';
 import { Public } from 'src/auth/decorator/public..decorator';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
 @ApiTags('Products')
 @Controller('products')
@@ -223,6 +224,8 @@ export class ProductController {
     };
   }
 
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(240)
   @Public()
   @Get('/:id')
   @HttpCode(HttpStatus.OK)
@@ -244,6 +247,8 @@ export class ProductController {
     };
   }
 
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60)
   @Public()
   @Get('/')
   @HttpCode(HttpStatus.OK)
@@ -259,7 +264,7 @@ export class ProductController {
     @Query('brand_id') brand_id?: string,
     @Query('category_id') category_id?: string,
     @Query('sort')
-    sort?: 'ASC' | 'DESC' | 'Price (Low to High)' | 'Price (High to Low)',
+    sort?: SearchProductsRequest['sort'],
     @Query('pmax') pmax?: number,
     @Query('pmin') pmin?: number,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,

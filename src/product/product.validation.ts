@@ -38,7 +38,13 @@ export class ProductValidation {
     pmax: z.number().positive().optional(),
     pmin: z.number().positive().optional(),
     sort: z
-      .enum(['asc', 'desc', 'Price (Low to High)', 'Price (High to Low)'])
+      .enum([
+        'asc',
+        'desc',
+        'Price (Low to High)',
+        'Price (High to Low)',
+        'Best Selling',
+      ])
       .optional(),
     page: z.number().min(1).positive(),
     size: z.number().min(1).max(100).positive(),

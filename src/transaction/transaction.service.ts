@@ -76,7 +76,14 @@ export class TransactionService {
         (item) => item.product_id === product.id,
       );
       if (productFromRequest) {
-        product.quantity = productFromRequest.quantity;
+        const requestedQuantity = productFromRequest.quantity;
+        if (product.stock < requestedQuantity) {
+          throw new HttpException(
+            `Insufficient stock for product: ${product.name}`,
+            400,
+          );
+        }
+        product.quantity = requestedQuantity;
       }
     });
 
@@ -219,15 +226,17 @@ export class TransactionService {
           },
         },
       });
-
+      console.log(payload.item_details);
       const newTransactionItem =
         await this.transactionItemService.createTransactionItems(
           payload.item_details,
           newTransaction.id,
         );
+      await this.prismaService.$transaction([
+        newTransaction,
+        newTransactionItem,
+      ]);
 
-      console.log(newTransaction);
-      console.log(newTransactionItem);
       const newTransactionItems =
         await this.transactionItemService.getTransactionItemsByTransactionId(
           transaction_id,
@@ -385,6 +394,63 @@ export class TransactionService {
     };
   }
 
+  async getTransactionByAdmin(
+    request: FilterTransactionRequest,
+  ): Promise<WebResponse<TransactionResponse[]>> {
+    const filterRequest: FilterTransactionRequest =
+      this.validationService.validate(TransactionValidation.Filter, request);
+
+    const skip = (filterRequest.page - 1) * filterRequest.size;
+
+    const transactions = await this.prismaService.transaction.findMany({
+      where: {
+        AND: {
+          status: filterRequest.status,
+        },
+      },
+      include: {
+        address: true,
+        transactions_items: {
+          include: {
+            products: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                images: true,
+                variant: true,
+              },
+            },
+          },
+        },
+      },
+      take: filterRequest.size,
+      skip: skip,
+    });
+
+    const total = await this.prismaService.transaction.count({
+      where: {
+        AND: {
+          status: filterRequest.status,
+        },
+      },
+    });
+
+    return {
+      status: true,
+      message: 'Filter Transaction Success',
+      data: transactions.map((transaction) =>
+        this.toTransactionResponse(transaction),
+      ),
+      paging: {
+        count_item: total,
+        current_page: filterRequest.page,
+        size: filterRequest.size,
+        total_page: Math.ceil(total / filterRequest.size),
+      },
+    };
+  }
+
   async updateStatusBasedOnMidtransResponse(
     transaction_id: string,
     data: any,
@@ -475,7 +541,45 @@ export class TransactionService {
           status: statusTransaction,
           payment_method,
         },
+        include: {
+          transactions_items: true,
+        },
       });
+
+      // Check if status changed to PAID
+      if (updatedTransaction.status === TransactionStatus.PAID) {
+        // Increment stock_sold for each product in transaction items
+        for (const item of updatedTransaction.transactions_items) {
+          if (item.product_id) {
+            await this.prismaService.product.update({
+              where: {
+                id: item.product_id,
+              },
+              data: {
+                stock_sold: {
+                  increment: item.quantity,
+                },
+              },
+            });
+          }
+        }
+      } else if (updatedTransaction.status === TransactionStatus.CANCELED) {
+        // Decrement stock_sold for each product in transaction items (rollback if status is CANCEL)
+        for (const item of updatedTransaction.transactions_items) {
+          if (item.product_id) {
+            await this.prismaService.product.update({
+              where: {
+                id: item.product_id,
+              },
+              data: {
+                stock_sold: {
+                  decrement: item.quantity,
+                },
+              },
+            });
+          }
+        }
+      }
 
       return updatedTransaction;
     } catch (error) {

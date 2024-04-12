@@ -97,7 +97,6 @@ export class UpdateUserRequest {
   })
   password?: string;
 
-  @ApiProperty({ enum: ['ADMIN', 'USER'], required: false })
   role?: user_role;
 
   @ApiProperty({
