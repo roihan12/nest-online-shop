@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrismaService } from 'src/common/prisma.service';
 import { ValidationService } from 'src/common/validation.service';
@@ -17,6 +22,7 @@ import { BrandService } from 'src/brand/brand.service';
 import { WebResponse } from 'src/model/web.model';
 import { Product } from '@prisma/client';
 import { ShoppingCartResponse } from 'src/model/shopping-cart.model';
+import { SearchService } from 'src/search/search.service';
 
 @Injectable()
 export class ProductService {
@@ -27,6 +33,7 @@ export class ProductService {
     private uploadService: UploadService,
     private categoryService: CategoryService,
     private brandService: BrandService,
+    private searchService: SearchService,
   ) {}
 
   async createProduct(
@@ -97,6 +104,11 @@ export class ProductService {
       },
     });
 
+    await this.searchService.indexProductInElasticsearch(
+      product,
+      product.images,
+      product.variant,
+    );
     return toProductResponse(product, product.images, product.variant);
   }
 
@@ -147,6 +159,7 @@ export class ProductService {
         id: id,
       },
     });
+    await this.searchService.remove(id);
   }
 
   async updateProduct(request: UpdateProductRequest): Promise<ProductResponse> {
@@ -181,6 +194,9 @@ export class ProductService {
         images: true,
       },
     });
+
+    await this.searchService.update(product, product.images, product.variant);
+
     return toProductResponse(product, product.images, product.variant);
   }
 
@@ -274,6 +290,22 @@ export class ProductService {
           total_page: 0,
         },
       };
+    }
+  }
+
+  async searchByElasticSearch(
+    keyword: SearchProductsRequest,
+  ): Promise<WebResponse<ProductResponse[]>> {
+    const searchRequest: SearchProductsRequest =
+      this.validationService.validate(ProductValidation.SEARCH, keyword);
+    try {
+      return await this.searchService.searchProduct(
+        searchRequest.name,
+        searchRequest.page,
+        searchRequest.size,
+      );
+    } catch (error: any) {
+      throw new HttpException('Error on search', 500);
     }
   }
 

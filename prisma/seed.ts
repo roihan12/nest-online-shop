@@ -2,7 +2,13 @@ import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 async function main() {
-  await prisma.user.deleteMany();
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        in: ['admin@nestshop.com', 'owner@nestshop.com'],
+      },
+    },
+  });
 
   await prisma.user.create({
     data: {

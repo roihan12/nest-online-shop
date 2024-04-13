@@ -226,7 +226,11 @@ export class TransactionService {
           },
         },
       });
-      console.log(payload.item_details);
+
+      payload.item_details = payload.item_details.filter(
+        (item) => item.name !== 'Shipping Cost',
+      );
+
       const newTransactionItem =
         await this.transactionItemService.createTransactionItems(
           payload.item_details,

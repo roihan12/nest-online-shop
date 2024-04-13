@@ -29,6 +29,7 @@ import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { Redis } from 'ioredis';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { Redis } from 'ioredis';
     RajaOngkirModule,
     ReviewModule,
     DashboardModule,
+    SearchModule,
   ],
   controllers: [],
   providers: [
