@@ -108,52 +108,55 @@ export class SearchService {
     page: number = 1,
     size: number = 10,
   ): Promise<WebResponse<ProductResponse[]>> {
+    console.log(keyword);
     try {
-      const products = await this.querySearchResult({
-        must: [
-          {
-            term: {
-              status: 'ACTIVE',
-            },
-          },
-        ],
-        should: [
-          {
-            fuzzy: {
-              name: {
-                value: keyword,
-                fuzziness: 'AUTO',
-                prefix_length: 0,
+      const products = await this.querySearchResult(
+        {
+          must: [
+            {
+              term: {
+                status: 'ACTIVE',
               },
             },
-          },
-          {
-            multi_match: {
-              query: keyword,
-              fields: ['name', 'description', 'variants'],
+          ],
+          should: [
+            {
+              fuzzy: {
+                name: {
+                  value: keyword,
+                  fuzziness: 'AUTO',
+                  prefix_length: 0,
+                },
+              },
             },
-          },
-          {
-            match: {
-              description: {
+            {
+              multi_match: {
                 query: keyword,
-                fuzziness: 'AUTO',
+                fields: ['name', 'description', 'variants'],
               },
             },
-          },
-          {
-            match: {
-              variants: {
-                query: keyword,
-                fuzziness: 'AUTO',
+            {
+              match: {
+                description: {
+                  query: keyword,
+                  fuzziness: 'AUTO',
+                },
               },
             },
-          },
-        ],
-        minimum_should_match: 1,
-        from: (page - 1) * size,
-        size: size,
-      });
+            {
+              match: {
+                variants: {
+                  query: keyword,
+                  fuzziness: 'AUTO',
+                },
+              },
+            },
+          ],
+          minimum_should_match: 1,
+        },
+        page,
+        size,
+      );
 
       return {
         status: true,
@@ -167,6 +170,7 @@ export class SearchService {
         },
       };
     } catch (error: any) {
+      this.logger.error(error);
       throw new HttpException('Error on search', 500);
     }
   }
@@ -225,6 +229,8 @@ export class SearchService {
 
   private async querySearchResult(
     searchQuery: any,
+    page: number = 1,
+    size: number = 10,
   ): Promise<ProductResponse[]> {
     try {
       return await this.elasticSearch
@@ -233,14 +239,18 @@ export class SearchService {
           query: {
             bool: searchQuery,
           },
+          from: (page - 1) * size,
+          size: size,
         })
         .then((response) =>
           response.hits.hits.map((product) => product._source),
         )
-        .catch(() => {
+        .catch((error) => {
+          console.log('erorrrrrrrr', error);
           throw new HttpException('Error on search', 500);
         });
     } catch (error) {
+      console.log(error);
       throw new HttpException('Error on search', 500);
     }
   }

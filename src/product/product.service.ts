@@ -1,9 +1,4 @@
-import {
-  HttpException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrismaService } from 'src/common/prisma.service';
 import { ValidationService } from 'src/common/validation.service';
@@ -294,19 +289,16 @@ export class ProductService {
   }
 
   async searchByElasticSearch(
-    keyword: SearchProductsRequest,
+    request?: SearchProductsRequest,
   ): Promise<WebResponse<ProductResponse[]>> {
     const searchRequest: SearchProductsRequest =
-      this.validationService.validate(ProductValidation.SEARCH, keyword);
-    try {
-      return await this.searchService.searchProduct(
-        searchRequest.name,
-        searchRequest.page,
-        searchRequest.size,
-      );
-    } catch (error: any) {
-      throw new HttpException('Error on search', 500);
-    }
+      this.validationService.validate(ProductValidation.SEARCH, request);
+
+    return await this.searchService.searchProduct(
+      searchRequest.name,
+      searchRequest.page,
+      searchRequest.size,
+    );
   }
 
   async getProductsByIds(products: ShoppingCartResponse[]): Promise<Product[]> {

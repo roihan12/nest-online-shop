@@ -22,7 +22,7 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       full_name: 'owner',
       email: 'owner@nestshop.com',
@@ -33,6 +33,8 @@ async function main() {
       username: 'owner',
     },
   });
+
+  console.log(user);
 }
 
 main()

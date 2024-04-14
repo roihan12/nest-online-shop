@@ -41,7 +41,6 @@ import { SearchModule } from './search/search.module';
       store: redisStore,
       host: process.env.REDIS_HOST,
       port: process.env.REDIS_PORT,
-      username: process.env.REDIS_USERNAME,
       password: process.env.REDIS_PASSWORD,
       no_ready_check: true,
     }),
@@ -53,7 +52,6 @@ import { SearchModule } from './search/search.module';
         new Redis({
           host: process.env.REDIS_HOST,
           port: Number(process.env.REDIS_PORT),
-          username: process.env.REDIS_USERNAME,
           password: process.env.REDIS_PASSWORD,
         }),
       ),

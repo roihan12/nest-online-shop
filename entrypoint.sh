@@ -6,6 +6,5 @@ npx prisma generate --schema=/usr/src/app/prisma/schema.prisma
 
 # Run database migrations  
 npx prisma migrate dev --name init --schema=/usr/src/app/prisma/schema.prisma
-npx prisma db seed
 # Run the main container command  
 exec "$@"

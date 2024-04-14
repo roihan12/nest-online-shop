@@ -7,30 +7,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      PORT: ${PORT}
-      POSTGRES_HOST: postgres_db
-      REDIS_HOST: redis
-      ACCESSTOKENSECRET: ${ACCESSTOKENSECRET}
-      REFRESHTOKENSECRET: ${REFRESHTOKENSECRET}
-      REDIRECT_URL: ${REDIRECT_URL}
-      SESSION: ${SESSION}
-      MAIL_HOST: ${MAIL_HOST}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
-      BUCKET_NAME: ${BUCKET_NAME}
-      BUCKET_ENDPOINT: ${BUCKET_ENDPOINT}
-      BUCKET_ACCESS_KEY: ${BUCKET_ACCESS_KEY}
-      BUCKET_SECRET_KEY: ${BUCKET_SECRET_KEY}
-      RAJA_ONGKIR_API_KEY: ${RAJA_ONGKIR_API_KEY}
-      MIDTRANS_APP_URL: ${MIDTRANS_APP_URL}
-      MIDTRANS_API_URL: ${MIDTRANS_API_URL}
-      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
-      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
-      FRONT_END_URL: ${FRONT_END_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}?schema=public
+    volumes:
+      - .:/usr/src/app # create volumn in current directory of container
+      - /usr/src/app/node_modules # anonymus/unnamed volumn in container
     ports:
       - ${PORT}:${PORT}
     depends_on:
@@ -48,7 +31,7 @@ services:
       POSTGRESQL_USERNAME: ${POSTGRES_USER}
       POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRESQL_DATABASE: ${POSTGRES_DB}
-      POSTGRESQL_TIMEZONE: 'Asia/Tashkent' # This is optional
+      POSTGRESQL_TIMEZONE: 'Asia/Jakarta' # This is optional
     ports:
       - ${POSTGRES_PORT}:5432
     volumes:

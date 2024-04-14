@@ -57,6 +57,32 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 export class ProductController {
   constructor(private productService: ProductService) {}
 
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60)
+  @Public()
+  @Get('/search')
+  @HttpCode(HttpStatus.OK)
+  @ApiArrayResponse(ProductResponse)
+  @ApiInternalServerErrorResponse({
+    status: 500,
+    description: 'Internal Server error',
+    type: InternalServerErrorResponse,
+  })
+  @ApiOperation({ summary: 'Search products by elasticsearch' })
+  async searchProductElasticSearch(
+    @Query('name') name?: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('size', new ParseIntPipe({ optional: true })) size?: number,
+  ): Promise<WebResponse<ProductResponse[]>> {
+    const request: SearchProductsRequest = {
+      name: name,
+      page: page || 1,
+      size: size || 10,
+    };
+
+    return await this.productService.searchByElasticSearch(request);
+  }
+
   @Post('/')
   @UseGuards(AccessTokenGuard, RoleGuard)
   @Roles(['ADMIN', 'OWNER'])
@@ -281,31 +307,6 @@ export class ProductController {
       size: size || 10,
     };
     return await this.productService.search(request);
-  }
-
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(60)
-  @Public()
-  @Get('/search')
-  @HttpCode(HttpStatus.OK)
-  @ApiArrayResponse(ProductResponse)
-  @ApiInternalServerErrorResponse({
-    status: 500,
-    description: 'Internal Server error',
-    type: InternalServerErrorResponse,
-  })
-  @ApiOperation({ summary: 'Search products by elasticsearch' })
-  async searchProductElasticSearch(
-    @Query('name') name?: string,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('size', new ParseIntPipe({ optional: true })) size?: number,
-  ): Promise<WebResponse<ProductResponse[]>> {
-    const request: SearchProductsRequest = {
-      name: name,
-      page: page || 1,
-      size: size || 10,
-    };
-    return await this.productService.searchByElasticSearch(request);
   }
 
   isValidImage(image: any): boolean {
