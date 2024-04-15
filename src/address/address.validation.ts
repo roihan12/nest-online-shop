@@ -9,7 +9,7 @@ export class AddressValidation {
     province: z.string().min(1).max(100),
     subdistrict: z.string().min(1).max(100),
     country: z.string().min(1).max(100),
-    is__default: z.boolean(),
+    is_default: z.boolean(),
     postal_code: z.string().min(1).max(10),
   });
 
@@ -22,7 +22,7 @@ export class AddressValidation {
     province: z.string().min(1).max(100),
     subdistrict: z.string().min(1).max(100),
     country: z.string().min(1).max(100),
-    is__default: z.boolean(),
+    is_default: z.boolean(),
     postal_code: z.string().min(1).max(10),
   });
 }

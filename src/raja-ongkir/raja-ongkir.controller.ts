@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -58,9 +58,9 @@ export class RajaOngkirController {
     type: ForbiddenResponse,
   })
   @ApiOperation({ summary: 'Get all city by province' })
-  @Get('/city/:provId')
-  async getCity(@Param('provId') provId: number) {
-    return this.rajaOngkirService.getCity(provId);
+  @Get('/city')
+  async getCity(@Query('id') id?: number, @Query('id') provinceId?: number) {
+    return this.rajaOngkirService.getCity(id, provinceId);
   }
 
   @ApiUnauthorizedResponse({

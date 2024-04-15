@@ -1,26 +1,27 @@
 'use strict';
-import {
-  BatchSpanProcessor,
-  SimpleSpanProcessor,
-} from '@opentelemetry/sdk-trace-base';
-import { NodeSDK, api } from '@opentelemetry/sdk-node';
+// import {
+//   BatchSpanProcessor,
+//   SimpleSpanProcessor,
+// } from '@opentelemetry/sdk-trace-base';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 import * as process from 'process';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { JaegerExporter } from '@opentelemetry/exporter-jaeger';
+// import { JaegerExporter } from '@opentelemetry/exporter-jaeger';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as dotenv from 'dotenv';
 // import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
-import { B3Propagator } from '@opentelemetry/propagator-b3';
+
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 
 // const traceExporter = new ConsoleSpanExporter();
 
-const jaegerExporter = new JaegerExporter({
-  endpoint: 'http://localhost:14268/api/traces',
-});
+// const jaegerExporter = new JaegerExporter({
+//   endpoint: 'http://localhost:14268/api/traces',
+// });
 
 // const oltpExporter = new OTLPTraceExporter({
 //   url: `https://api.honeycomb.io/v1/traces`,
@@ -29,26 +30,31 @@ const jaegerExporter = new JaegerExporter({
 //   },
 // });
 
-const traceExporter = jaegerExporter;
+const exporterOptions = {
+  url: 'http://jaeger:4317', // grcp
+};
 
-const spanProcessor =
-  process.env.NODE_ENV === `development`
-    ? new SimpleSpanProcessor(traceExporter)
-    : new BatchSpanProcessor(traceExporter);
+const traceExporter = new OTLPTraceExporter(exporterOptions);
+// const spanProcessor =
+//   process.env.NODE_ENV === `development`
+//     ? new SimpleSpanProcessor(traceExporter)
+//     : new BatchSpanProcessor(traceExporter);
 
 // Set B3 Propagator
-api.propagation.setGlobalPropagator(new B3Propagator());
+// api.propagation.setGlobalPropagator(new B3Propagator());
+const provider = new NodeTracerProvider();
+provider.register();
 
 export const otelSDK = new NodeSDK({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'nestjs-online-shop-otel',
-  }),
-  spanProcessor,
+  traceExporter,
   instrumentations: [
     new HttpInstrumentation(),
     new ExpressInstrumentation(),
     new NestInstrumentation(),
   ],
+  resource: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'nest-online-shop-otel',
+  }),
 });
 
 // start the SDK

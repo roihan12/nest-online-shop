@@ -14,8 +14,8 @@ services:
       REDIS_HOST: ${REDIS_HOST}
       PROMETHEUS_PORT: 9100
     volumes:
-      - .:/usr/src/app # create volumn in current directory of container
-      - /usr/src/app/node_modules # anonymus/unnamed volumn in container
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
     ports:
       - ${PORT}:${PORT}
     depends_on:
@@ -23,6 +23,7 @@ services:
       - redis
       - esnode1
       - prometheus
+      - jaeger
     networks:
       net-nest-shop:
 
@@ -34,7 +35,7 @@ services:
       POSTGRESQL_USERNAME: ${POSTGRES_USER}
       POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRESQL_DATABASE: ${POSTGRES_DB}
-      POSTGRESQL_TIMEZONE: 'Asia/Jakarta' # This is optional
+      POSTGRESQL_TIMEZONE: 'Asia/Jakarta'
     ports:
       - ${POSTGRES_PORT}:5432
     volumes:
@@ -145,19 +146,16 @@ services:
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
       - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
 
-  tracing:
+  jaeger:
     image: jaegertracing/all-in-one:latest
     ports:
-      - 6831:6831/udp
-      - 6832:6832/udp
-      - 5778:5778
-      - 16686:16686
-      - 4317:4317
-      - 4318:4318
-      - 14250:14250
-      - 14268:14268
-      - 14269:14269
-      - 9411:9411
+      - '16686:16686'
+      - '4318:4318'
+      - '4317:4317'
+    environment:
+      - LOG_LEVEL=debug
+    networks:
+      net-nest-shop:
 
   prometheus:
     image: prom/prometheus:latest

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import axios from 'axios';
 import { RajaOngkirAPI } from 'src/common/raja-ongkir';
 
 @Injectable()
@@ -23,12 +24,17 @@ export class RajaOngkirService {
     }
   }
 
-  async getCity(id_prov: number) {
+  async getCity(id: number, id_prov: number) {
     try {
-      const rajaOngkirInstance = this.rajaOngkir.getInstance();
+      // const rajaOngkirInstance = this.rajaOngkir.getInstance();
 
-      const response = await rajaOngkirInstance.get(
-        `/city?province=${id_prov}`,
+      const response = await axios.get(
+        `https://api.rajaongkir.com/starter/city?id=${id}&province=${id_prov}`,
+        {
+          headers: {
+            key: process.env.RAJA_ONGKIR_API_KEY,
+          },
+        },
       );
 
       return response.data;
