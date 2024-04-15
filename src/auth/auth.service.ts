@@ -109,12 +109,23 @@ export class AuthService {
     };
   }
   async verifyEmail(verifyCode: string): Promise<UserResponse> {
+    this.logger.info(`AuthService.login(${JSON.stringify(verifyCode)})`);
+
     const verificationCode = crypto
       .createHash('sha256')
       .update(verifyCode)
       .digest('hex');
+    let user = await this.prismaService.user.findUnique({
+      where: {
+        verification_code: verificationCode,
+      },
+    });
 
-    const user = await this.prismaService.user.update({
+    if (!user) {
+      throw new HttpException('Invalid verification code', 404);
+    }
+
+    user = await this.prismaService.user.update({
       where: {
         verification_code: verificationCode,
       },

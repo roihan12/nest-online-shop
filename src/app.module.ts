@@ -30,6 +30,7 @@ import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { Redis } from 'ioredis';
 import { SearchModule } from './search/search.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
@@ -55,6 +56,9 @@ import { SearchModule } from './search/search.module';
           password: process.env.REDIS_PASSWORD,
         }),
       ),
+    }),
+    PrometheusModule.register({
+      path: '/metrics',
     }),
     CommonModule,
     AuthModule,

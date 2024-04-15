@@ -12,7 +12,9 @@ export class RajaOngkirService {
   async getProvinsi() {
     try {
       const rajaOngkirInstance = this.rajaOngkir.getInstance();
+      console.log(rajaOngkirInstance);
       const response = await rajaOngkirInstance.get('/province');
+      console.log(response);
       return response.data;
     } catch (error) {
       throw new Error(

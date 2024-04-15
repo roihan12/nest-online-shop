@@ -11,7 +11,7 @@ import * as fs from 'fs';
       useFactory: async (configService: ConfigService) => ({
         node: configService.get('ELASTICSEARCH_NODE'),
         auth: {
-          username: configService.get('ELASTIC_PASSWORD'),
+          username: configService.get('ELASTIC_USERNAME'),
           password: configService.get('ELASTIC_PASSWORD'),
         },
         tls: {

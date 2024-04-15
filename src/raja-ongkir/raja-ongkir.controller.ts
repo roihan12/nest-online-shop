@@ -22,6 +22,7 @@ import {
 export class RajaOngkirController {
   constructor(private rajaOngkirService: RajaOngkirService) {}
 
+  @Get('/province')
   @ApiUnauthorizedResponse({
     status: 401,
     description: 'Unauthorized',

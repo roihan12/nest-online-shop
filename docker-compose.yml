@@ -10,20 +10,23 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_db:5432/${POSTGRES_DB}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_HOST: ${REDIS_HOST}
+      PROMETHEUS_PORT: 9100
     volumes:
       - .:/usr/src/app # create volumn in current directory of container
       - /usr/src/app/node_modules # anonymus/unnamed volumn in container
     ports:
       - ${PORT}:${PORT}
     depends_on:
-      - postgres_db
+      - postgres
       - redis
       - esnode1
+      - prometheus
     networks:
-      myapp_net:
+      net-nest-shop:
 
-  postgres_db:
+  postgres:
     image: bitnami/postgresql:15
     container_name: 'myapp_postgres_db'
     restart: unless-stopped
@@ -37,7 +40,8 @@ services:
     volumes:
       - 'postgres_data:/bitnami/postgresql'
     networks:
-      myapp_net:
+      net-nest-shop:
+
   redis:
     image: 'bitnami/redis:7.2'
     container_name: 'myapp_redis'
@@ -50,12 +54,11 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_DB: ${REDIS_DB}
-      REDIS_USERNAME: ${REDIS_USERNAME}
       REDIS_IO_THREADS: 4
       REDIS_IO_THREADS_DO_READS: 'yes'
       REDIS_DISABLE_COMMANDS: FLUSHDB,FLUSHALL
     networks:
-      myapp_net:
+      net-nest-shop:
 
   setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
@@ -123,6 +126,8 @@ services:
       memlock:
         soft: -1
         hard: -1
+    networks:
+      net-nest-shop:
 
   kibana:
     depends_on:
@@ -139,17 +144,53 @@ services:
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
       - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
+
+  tracing:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - '9095:9090'
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - prom_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+    networks:
+      net-nest-shop:
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - '3001:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      net-nest-shop:
+
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
   certs:
-    driver: local
   esnode1-data:
-    driver: local
   kibana-data:
-    driver: local
+  grafana-data:
+  prom_data:
 
 networks:
-  myapp_net:
+  net-nest-shop:
