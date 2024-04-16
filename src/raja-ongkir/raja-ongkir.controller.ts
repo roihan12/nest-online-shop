@@ -59,7 +59,10 @@ export class RajaOngkirController {
   })
   @ApiOperation({ summary: 'Get all city by province' })
   @Get('/city')
-  async getCity(@Query('id') id?: number, @Query('id') provinceId?: number) {
+  async getCity(
+    @Query('id') id?: number,
+    @Query('provinceId') provinceId?: number,
+  ) {
     return this.rajaOngkirService.getCity(id, provinceId);
   }
 

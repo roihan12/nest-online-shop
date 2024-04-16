@@ -31,6 +31,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { Redis } from 'ioredis';
 import { SearchModule } from './search/search.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { MyPrometheusControllers } from './prometheus/my-prometheus.controller';
 
 @Module({
   imports: [
@@ -58,7 +59,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
       ),
     }),
     PrometheusModule.register({
-      path: '/metrics',
+      controller: MyPrometheusControllers,
     }),
     CommonModule,
     AuthModule,
@@ -84,7 +85,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
     DashboardModule,
     SearchModule,
   ],
-  controllers: [],
+  controllers: [MyPrometheusControllers],
   providers: [
     {
       provide: APP_GUARD,
