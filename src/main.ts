@@ -1,4 +1,4 @@
-import init from './tracing';
+import tracing from './tracing';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -9,7 +9,8 @@ import * as passport from 'passport';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  await init('nest-online-shop');
+  await tracing.start();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({
     origin: 'http://localhost:3000',
